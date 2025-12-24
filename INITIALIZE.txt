@@ -1,0 +1,13 @@
+#################################### LANGUAGE PROJECT - Capstone  ########################################
+PROLOGUE#
+#########
+A -
+	01. Create Capstone Directory
+	02. Create Venv "LNenv" with the following commands within Anaconda Prompt
+		conda create -n LNenv python=3.11
+		conda activate LNenv	
+		conda install ipykernel jupyter -y
+		python -m ipykernel install --user --name LNenv --display-name "Python (LNenv)"
+	03. Create /requirements.txt file that will be used in Git Repository for all libraries needed (will be appended later)
+		followed by pip install -r requirements.txt
+	04. Create .ipynb file to begin testing first model of Language Detection and Transcription using 					https://huggingface.co/datasets/google/fleurs/tree/main/data/en_us

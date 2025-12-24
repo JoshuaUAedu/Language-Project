@@ -1,0 +1,15 @@
+numpy
+pandas
+scikit-learn
+matplotlib
+jupyter
+ipykernel
+datasets==2.20.0
+transformers 
+torchaudio 
+librosa 
+soundfile
+jiwer
+scipy>=1.9
+sounddevice>=0.4
+torch
