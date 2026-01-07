@@ -1,7 +1,7 @@
 #################################### LANGUAGE PROJECT - Capstone  ########################################
 PROLOGUE#
 #########
-A -
+A - Initialize
 	01. Create Capstone Directory
 	02. Create Venv "LNenv" with the following commands within Anaconda Prompt
 		conda create -n LNenv python=3.11
@@ -10,13 +10,37 @@ A -
 		python -m ipykernel install --user --name LNenv --display-name "Python (LNenv)"
 	03. Create /requirements.txt file that will be used in Git Repository for all libraries needed (will be appended later)
 		followed by pip install -r requirements.txt
-	04. Create .ipynb file to begin testing first model of Language Detection and Transcription using 					https://huggingface.co/datasets/google/fleurs/tree/main/data/en_us
+	04. Create .ipynb file to begin testing first model of Language Detection and Transcription using ---> https://huggingface.co/datasets/google/fleurs/tree/main/data/en_us (and other languages)
 	.05 Initialize GitHub Repository
 		within conda prompt while in repository
 		check with - git status
 		then - git init
 		git add .
 		git commit -m "Initializing repo"
-		then in GitHub create repository with no readme, license, etc
+		then in GitHub create repository with no: readme, license, etc
 		git remote add origin *repo*
 		git push -u origin main
+
+B - Model 1: Transcription
+	01. Begin .ipynb with imports and loading huggingface datasets
+	02. Set up the pipeline to use the openai/whisper-small model for transcription only*
+	03. Create a cell to record audio and save to a .wav file within the correct sample rate for whisper
+	04. Test the transcription model with the custom recording.wav file
+
+C - Model 2: Detection
+	01. Not as necessary but wanted to add it for future purposes within the project
+	02. Create a multi classifier model using a concatenation of the huggingface language data with only transcription text, language as columns
+	03. Train on the text and target language as y
+	04. Create the train model function and test function and test against basic strings and the recording.wav file
+	05. Add probabilities for each language and how the model reacted. 
+
+D - REFINE Current Progress
+	01. Make audio recording cell able to record variable length .wav files with a button to stop recording - may need to adjust how to stop
+	02. May need to adjust batch sizes to audio recording + padding
+	03. Refine the classifier model to be more accurate in detecting the languages
+	04. Any other foundational step do, in order to advance to translation model
+
+E - Model 3: Translation
+	01. Use OPAS or another open sourced translation model*
+	02. Make it directly connect to the recording.wav file and make accuracy high 90>
+	03. Make multiple functions of this model for each language to convert from and to (English -> Spanish)(Japanese -> English)(Spanish -> Japanese) etc
