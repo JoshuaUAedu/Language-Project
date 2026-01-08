@@ -11,7 +11,7 @@ A - Initialize
 	03. Create /requirements.txt file that will be used in Git Repository for all libraries needed (will be appended later)
 		followed by pip install -r requirements.txt
 	04. Create .ipynb file to begin testing first model of Language Detection and Transcription using ---> https://huggingface.co/datasets/google/fleurs/tree/main/data/en_us (and other languages)
-	.05 Initialize GitHub Repository
+	05. Initialize GitHub Repository
 		within conda prompt while in repository
 		check with - git status
 		then - git init
@@ -29,7 +29,7 @@ B - Model 1: Transcription
 
 C - Model 2: Detection
 	01. Not as necessary but wanted to add it for future purposes within the project
-	02. Create a multi classifier model using a concatenation of the huggingface language data with only transcription text, language as columns
+	02. Create a multiclass classifier model using a concatenation of the huggingface language data with only: transcription text, language as columns
 	03. Train on the text and target language as y
 	04. Create the train model function and test function and test against basic strings and the recording.wav file
 	05. Add probabilities for each language and how the model reacted. 
