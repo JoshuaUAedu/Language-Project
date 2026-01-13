@@ -33,6 +33,7 @@ C - Model 2: Detection
 	03. Train on the text and target language as y
 	04. Create the train model function and test function and test against basic strings and the recording.wav file
 	05. Add probabilities for each language and how the model reacted. 
+	06. Maybe have multiple models for long strings of text versus short (<4 words) and create a smalld dataset to test with short sentences and single word inputs
 
 D - REFINE Current Progress
 	01. Make audio recording cell able to record variable length .wav files with a button to stop recording - may need to adjust how to stop
