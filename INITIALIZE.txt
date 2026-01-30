@@ -38,8 +38,9 @@ C - Model 2: Detection
 D - REFINE Current Progress
 	01. Make audio recording cell able to record variable length .wav files with a button to stop recording - may need to adjust how to stop
 	02. May need to adjust batch sizes to audio recording + padding
-	03. Refine the classifier model to be more accurate in detecting the languages
-	04. Any other foundational step do, in order to advance to translation model
+	03. Create function to add 2-4 word(char) data to training dataset to help the issue of inaccurate detection of short sentences!
+	04. Refine the classifier model to be more accurate in detecting the languages
+	05. Any other foundational step do, in order to advance to translation model
 
 E - Model 3: Translation
 	01. Use OPAS or another open sourced translation model*
