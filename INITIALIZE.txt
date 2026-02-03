@@ -41,8 +41,44 @@ D - REFINE Current Progress
 	03. Create function to add 2-4 word(char) data to training dataset to help the issue of inaccurate detection of short sentences!
 	04. Refine the classifier model to be more accurate in detecting the languages
 	05. Any other foundational step do, in order to advance to translation model
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------ POST MENTORSHIP --------------------------------------------------------------------------------------------------------------
+E - Begin Learning/Testing Kyutai Labs Moshi STT/TTS models in new .ipynb
+	01. Create new Virtual Env conda create -n MOSHIenv python=3.10 -y -> conda activate MOSHIenv -> pip install torch torchvision torchaudio
+	02. pip install -r requirements.txt (moshi requirements)
+	03. INITIALIZE jupyter notebooks - python -m ipykernel install --user --name moshi --display-name "Python (moshi)"
+	04. conda install -c conda-forge ffmpeg -> for pydub
+	05. pip install -U -e "git+https://git@github.com/kyutai-labs/moshi#egg=moshi&subdirectory=moshi" ** most recent moshi installation
+	06. Moshi.ipynb to test and use STT, Streaming audio, TTS, and conversational feedback loop
 
-E - Model 3: Translation
+F - NEED to reorganize GitHub structure
+	01. Envs folder, src folder, audio folder, notebooks folder, root (initialize.txt, capstone.pdf, README.md, etc)
+
+
+
+END GOAL
+- Whisper Transcription Model needs to be flawless with multiple languages (En,Es,Jp,Ko,Gm,Fr,Ch,Ru,etc)
+- Personal CNN Detection needs to be 95% accurate with no overfitting
+- Transcription Model - needs to be 95% accurate and work across multiple languages(default everything to English - English to everything)
+- Moshi Kyutai TTS - English only - tutor that can take in the translated text from OPUS or original text from whisper and help guide learning
+- Moshi model will need to have a document explaining its role, and goals to guide conversation such as (help student learn from text, explain meaning, 
+pronunciation, and deliver simple phrases to pair after text given, be professional, short and sweet)
+- would love to add a real time text and origin text (like English with Japanese underneath) to show what is being said from user and how the Moshi responds
+
+
+	
+
+
+
+
+
+- Model 3: Translation
 	01. Use OPAS or another open sourced translation model*
 	02. Make it directly connect to the recording.wav file and make accuracy high 90>
 	03. Make multiple functions of this model for each language to convert from and to (English -> Spanish)(Japanese -> English)(Spanish -> Japanese) etc
+
+
+
+
+kamalshi
+
