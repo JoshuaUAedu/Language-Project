@@ -54,6 +54,23 @@ E - Begin Learning/Testing Kyutai Labs Moshi STT/TTS models in new .ipynb
 F - NEED to reorganize GitHub structure
 	01. Envs folder, src folder, audio folder, notebooks folder, root (initialize.txt, capstone.pdf, README.md, etc)
 
+G - Model 3: Translation
+	01. Use Meta NNLB Pre trained translation Model
+	02. Make it directly connect to the recording.wav file and make accuracy high 90>
+	03. Function takes in str(text),source language, target language 
+	04. **Current languages: English, Spanish, Japanese, French, German
+
+H - Ideas*
+	01. Make translation text and transcription text have typing animation and write out at same time
+	02. Maybe color code words that are supposed to be the same so you can learn which words are where 
+	03. The Journal idea for learning, left page is source language, right page is target translation so you can read what you typed and store phrases you want to learn and categorize yourself!
+	04. ^ to go with that, add popular phrases everyone should know as default suggestions
+	05. A streaming audio section, and if using Journal in english have a bar that streams audio as you speak 
+	06. Maybe add the video caption feature for uploading a video and recieving an .mp4 back with captions 
+	
+
+
+
 
 
 END GOAL
@@ -66,19 +83,4 @@ pronunciation, and deliver simple phrases to pair after text given, be professio
 - would love to add a real time text and origin text (like English with Japanese underneath) to show what is being said from user and how the Moshi responds
 
 
-	
-
-
-
-
-
-- Model 3: Translation
-	01. Use OPAS or another open sourced translation model*
-	02. Make it directly connect to the recording.wav file and make accuracy high 90>
-	03. Make multiple functions of this model for each language to convert from and to (English -> Spanish)(Japanese -> English)(Spanish -> Japanese) etc
-
-
-
-
-kamalshi
 
