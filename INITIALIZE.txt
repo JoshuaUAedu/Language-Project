@@ -67,7 +67,8 @@ H - Ideas*
 	04. ^ to go with that, add popular phrases everyone should know as default suggestions
 	05. A streaming audio section, and if using Journal in english have a bar that streams audio as you speak 
 	06. Maybe add the video caption feature for uploading a video and recieving an .mp4 back with captions 
-	
+	07. Maybe load datasets with each 2000 examples only
+
 
 
 
