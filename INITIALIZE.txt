@@ -33,7 +33,8 @@ C - Model 2: Detection
 	03. Train on the text and target language as y
 	04. Create the train model function and test function and test against basic strings and the recording.wav file
 	05. Add probabilities for each language and how the model reacted. 
-	06. Maybe have multiple models for long strings of text versus short (<4 words) and create a smalld dataset to test with short sentences and single word inputs
+	06. Maybe have multiple models for long strings of text versus short (<4 words) and create a small dataset to test with short sentences and single word inputs
+	07. *Additional whisper detection has been activated for more accurate detections
 
 D - REFINE Current Progress
 	01. Make audio recording cell able to record variable length .wav files with a button to stop recording - may need to adjust how to stop
@@ -45,11 +46,11 @@ D - REFINE Current Progress
 ------------------------ POST MENTORSHIP --------------------------------------------------------------------------------------------------------------
 E - Begin Learning/Testing Kyutai Labs Moshi STT/TTS models in new .ipynb
 	01. Create new Virtual Env conda create -n MOSHIenv python=3.10 -y -> conda activate MOSHIenv -> pip install torch torchvision torchaudio
-	02. pip install -r requirements.txt (moshi requirements)
+	02. pip install -r requirements_moshi.txt (moshi requirements)
 	03. INITIALIZE jupyter notebooks - python -m ipykernel install --user --name moshi --display-name "Python (moshi)"
 	04. conda install -c conda-forge ffmpeg -> for pydub
 	05. pip install -U -e "git+https://git@github.com/kyutai-labs/moshi#egg=moshi&subdirectory=moshi" ** most recent moshi installation
-	06. Moshi.ipynb to test and use STT, Streaming audio, TTS, and conversational feedback loop
+	06. Moshi.ipynb to test and use STT, Streaming audio, TTS, and maybe conversational feedback loop
 
 F - NEED to reorganize GitHub structure
 	01. Envs folder, src folder, audio folder, notebooks folder, root (initialize.txt, capstone.pdf, README.md, etc)
@@ -60,7 +61,37 @@ G - Model 3: Translation
 	03. Function takes in str(text),source language, target language 
 	04. **Current languages: English, Spanish, Japanese, French, German
 
-H - Ideas*
+H - Jetstream2 GPU Set Up / Cloning instructions(Steps 03. onward)
+	01. Once GPU allocation is made with SSH key, connect to vscode
+	02. Once connected to vscode clone the GitHub repo ----> IMPORTANT: add name/ of venv about to create to .gitignore -> LNenv2/ 
+	03. Initializing - check python version - python3 --version - Create venv - python3 -m venv LNenv2 - ACTIVATE - source LNenv2/bin/activate
+	04. PIP - pip install --upgrade pip
+	05. Install dependencies - cd env -> pip install -r requirements_MoshiGPU.txt (safer one for allocation GPU)
+	06. Set up ipykernel -> python -m ipykernel install --user --name=LNenv2 --display-name "Python (MoshiGPU)"
+	07. Download python/jupyter extensions on vscode
+	08. Jetstream did not have sounddevice -> sudo apt update -> sudo apt install portaudio19-dev -> deactivate -> source LNenv2/bin/activate 
+	09. *Rebuild if needed - (if in old venv and want to restart)
+		deactivate
+		rm -rf LNenv2          -----> IMPORTANT ADD to .gitignore -> Moshi2/
+		python3 -m venv moshi_env
+		source Moshi2/bin/activate
+		pip install --upgrade pip
+		pip install -U -e "git+https://github.com/kyutai-labs/moshi.git#egg=moshi&subdirectory=moshi"  - do this first
+		pip install -r requirements_MoshiGPU.txt 
+		python -m ipykernel install --user --name=Moshi2 --display-name "Python (MoshiGPU2)"
+		
+
+might need to do this tomorrow with new env
+conda create -n moshi_gpu python=3.11
+conda activate moshi_gpu
+conda install pytorch==2.2.0 pytorch-cuda=12.1 -c pytorch -c nvidia
+pip install moshi
+
+		
+
+
+
+I - Ideas*
 	01. Make translation text and transcription text have typing animation and write out at same time
 	02. Maybe color code words that are supposed to be the same so you can learn which words are where 
 	03. The Journal idea for learning, left page is source language, right page is target translation so you can read what you typed and store phrases you want to learn and categorize yourself!
@@ -68,6 +99,7 @@ H - Ideas*
 	05. A streaming audio section, and if using Journal in english have a bar that streams audio as you speak 
 	06. Maybe add the video caption feature for uploading a video and recieving an .mp4 back with captions 
 	07. Maybe load datasets with each 2000 examples only
+	08. above journal - streaming audio realtime transcription and translation with smaller model - variable voice detected pauses/batches for inference and transcribing while below full transriptions occur
 
 
 
@@ -83,5 +115,11 @@ END GOAL
 pronunciation, and deliver simple phrases to pair after text given, be professional, short and sweet)
 - would love to add a real time text and origin text (like English with Japanese underneath) to show what is being said from user and how the Moshi responds
 
+
+IDEAS - 
+on the top right of the journal an obvious button with the language the page is set to so you can switch source and target languages there
+adding romanization of languages that do not use our alphabet
+maybe add a linear example area for people to learn (such as preset journals for like I am going to the beach, you are going to the beach, we are going to the beach... my name is, your name is... )
+once a journal is saved allow for the journal to become one sided so you can study and flip it over to see if you were right.  --- study mode
 
 
