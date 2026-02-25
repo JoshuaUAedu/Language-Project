@@ -14,3 +14,4 @@ scipy>=1.9
 sounddevice>=0.4
 torch
 sentencepiece
+evaluate
