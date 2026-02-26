@@ -4,3 +4,4 @@ sounddevice>=0.4
 fastapi
 uvicorn
 threading
+torchaudio
