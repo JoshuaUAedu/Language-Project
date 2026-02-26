@@ -16,6 +16,7 @@ torch
 sentencepiece
 evaluate
 sacrebleu
-mecab-python3 unidic-lite
+mecab-python3
+unidic-lite
 sacrebleu[ja]
 sacrebleu[ko]
