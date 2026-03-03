@@ -9,3 +9,4 @@ id_ed25519
 .vscode/
 GPUenv/
 py/client.py
+__pycache__
