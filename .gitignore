@@ -8,5 +8,4 @@ id_rsa
 id_ed25519
 .vscode/
 GPUenv/
-__pycache__
-client.py 
+py/client.py
