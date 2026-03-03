@@ -1,6 +1,15 @@
 
 from fastapi import FastAPI, UploadFile, File
 import uvicorn
+import sys
+import os
+
+from translate import load_translate_model, translate
+from transcribe import load_transcription_model, transcription
+
+# Load models once at startup
+transcriber_model = load_transcription_model()
+translator_model = load_translate_model()
 
 app = FastAPI()
 
@@ -8,15 +17,19 @@ app = FastAPI()
 async def transcribe_audio(file: UploadFile = File(...)):
     audio_bytes = await file.read()
 
-    # save temporarily
-    with open("temp.wav", "wb") as f:
+    temp_path = "temp.wav"
+    with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
-    text = transcription("temp.wav")
-    translated = translate(text)
+    # Transcription
+    text, src_lang = transcription(temp_path, transcriber_model)
+
+    # Translation 
+    translated = translate(text, src_lang, "English", translator_model)
 
     return {
         "transcription": text,
+        "source_language": src_lang,
         "translation": translated
     }
 
