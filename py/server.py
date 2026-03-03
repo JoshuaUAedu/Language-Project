@@ -25,7 +25,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
     text, src_lang = transcription(temp_path, transcriber_model)
 
     # Translation 
-    translated = translate(text, src_lang, "English", translator_model)
+    translated = translate(text, src_lang, "Spanish", translator_model)
 
     return {
         "transcription": text,

@@ -12,3 +12,4 @@ py/client.py
 __pycache__
 py/record_send.py
 audio_chunks/
+env/temp.wav
