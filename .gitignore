@@ -9,3 +9,5 @@ id_ed25519
 .vscode/
 GPUenv/
 py/client.py
+py/record_send.py
+
