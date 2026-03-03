@@ -80,12 +80,13 @@ H - Jetstream2 GPU Set Up / Cloning instructions(Steps 03. onward)
 		pip install -r requirements_MoshiGPU.txt 
 		python -m ipykernel install --user --name=Moshi2 --display-name "Python (MoshiGPU2)"
 I - Jetstream2 GPU Main Env - for transcription/translation
-	00. command prompt ssh jetstream
+	00. Open vscode and go to recent jetstream2 ssh repository
 	01. Add env to .gitignore --> GPUenv/
 	02. Create venv--> python3 venv GPUenv
 	03. Activate venv --> source GPUenv/bin/activate
 	04. pip install --upgrade pip
 	05. try cd env -> pip install -r requirements.txt
+	- pip install fastapi uvicorn python-multipart
 	06. python -m ipykernel install --user --name=GPUenv --display-name "Python (GPUenv)"
 	07. Test Latencies on Transcriptions and Translations
 	08. Git push everything done
