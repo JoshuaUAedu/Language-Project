@@ -10,7 +10,7 @@ id_ed25519
 GPUenv/
 py/client.py
 __pycache__
-py/record_send.py
+py/live_transcript.py
 audio_chunks/
 env/temp.wav
 temp.wav 
