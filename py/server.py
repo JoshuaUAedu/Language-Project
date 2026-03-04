@@ -7,6 +7,10 @@ import os
 from translate import load_translate_model, translate
 from transcribe import load_transcription_model, transcription
 
+
+# Load server for model use on client side
+# CTRL + C in terminal to end server
+
 # Load models once at startup
 transcriber_model = load_transcription_model()
 translator_model = load_translate_model()
