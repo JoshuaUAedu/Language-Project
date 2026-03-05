@@ -8,9 +8,8 @@ id_rsa
 id_ed25519
 .vscode/
 GPUenv/
-py/client.py
 __pycache__
-py/live_transcript.py
 audio_chunks/
 env/temp.wav
 temp.wav 
+config.py
