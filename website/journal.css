@@ -82,6 +82,8 @@ body {
     padding: 0.5rem 1rem;
     border-radius: 20px;
     border: 1px solid var(--border-color);
+    transition: max-width 0.35s ease, width 0.35s ease;
+    overflow: hidden;
 }
 
 .listening-indicator.muted {

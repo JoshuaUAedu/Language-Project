@@ -30,6 +30,16 @@ const journalState = {
     correctCount: 0
 };
 
+// Audio streaming state
+const streamState = {
+    mediaStream: null,
+    mediaRecorder: null,
+    isStreaming: false
+};
+
+const SERVER_URL = 'http://localhost:8000';
+const CHUNK_DURATION_MS = 4000;
+
 // DOM Elements
 const englishTextEl = document.getElementById('english-text');
 const spanishTextEl = document.getElementById('spanish-text');
@@ -78,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
     loadJournalEntries();
     checkForExistingJournal();
+    // Start streaming immediately since initial state is unmuted
+    if (!journalState.isMicMuted) startAudioStreaming();
 });
 
 // Event Listeners
@@ -259,28 +271,108 @@ function updateLanguageScriptUI() {
 // Update Microphone UI based on mute state
 function updateMicrophoneUI() {
     if (journalState.isMicMuted) {
-        // Show muted icon, hide normal icon
         micIcon.style.display = 'none';
         micMutedIcon.style.display = 'block';
-        
-        // Add muted class to waveform and indicator
         waveform.classList.add('muted');
         listeningIndicator.classList.add('muted');
-        
-        // Update text
         listeningText.textContent = 'Microphone muted';
+        stopAudioStreaming();
     } else {
-        // Show normal icon, hide muted icon
         micIcon.style.display = 'block';
         micMutedIcon.style.display = 'none';
-        
-        // Remove muted class from waveform and indicator
         waveform.classList.remove('muted');
         listeningIndicator.classList.remove('muted');
-        
-        // Update text
         listeningText.textContent = 'Listening for transcription...';
+        startAudioStreaming();
     }
+}
+
+// ── Audio Streaming ─────────────────────────────────────────────────────────
+
+async function startAudioStreaming() {
+    if (streamState.isStreaming) return;
+    try {
+        streamState.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamState.isStreaming = true;
+        recordNextChunk();
+    } catch (err) {
+        console.warn('Microphone access denied:', err);
+        listeningText.textContent = 'Microphone access denied';
+    }
+}
+
+function stopAudioStreaming() {
+    streamState.isStreaming = false;
+    if (streamState.mediaRecorder && streamState.mediaRecorder.state !== 'inactive') {
+        streamState.mediaRecorder.stop();
+    }
+    if (streamState.mediaStream) {
+        streamState.mediaStream.getTracks().forEach(t => t.stop());
+        streamState.mediaStream = null;
+    }
+    streamState.mediaRecorder = null;
+}
+
+function recordNextChunk() {
+    if (!streamState.isStreaming || !streamState.mediaStream) return;
+
+    const chunks = [];
+    const recorder = new MediaRecorder(streamState.mediaStream);
+    streamState.mediaRecorder = recorder;
+
+    recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+        if (chunks.length && streamState.isStreaming) {
+            const blob = new Blob(chunks, { type: recorder.mimeType });
+            await sendAudioChunk(blob, recorder.mimeType);
+        }
+        // Chain the next chunk immediately if still active
+        if (streamState.isStreaming) recordNextChunk();
+    };
+
+    recorder.start();
+    setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+    }, CHUNK_DURATION_MS);
+}
+
+async function sendAudioChunk(blob, mimeType) {
+    try {
+        const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const formData = new FormData();
+        formData.append('file', blob, `chunk.${ext}`);
+
+        const response = await fetch(`${SERVER_URL}/transcribe`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const text = (data.transcription || '').trim();
+        if (text) showTranscriptionChunk(text);
+    } catch (err) {
+        console.warn('Chunk send failed:', err);
+    }
+}
+
+function showTranscriptionChunk(text) {
+    listeningText.textContent = text;
+
+    // Expand bar width proportional to text length (characters → pixels)
+    const minWidth = 320;
+    const extraWidth = Math.min(text.length * 7, 700);
+    listeningIndicator.style.maxWidth = `${minWidth + extraWidth}px`;
+
+    // After a pause, shrink back and reset label
+    clearTimeout(streamState._shrinkTimer);
+    streamState._shrinkTimer = setTimeout(() => {
+        listeningText.textContent = 'Listening for transcription...';
+        listeningIndicator.style.maxWidth = '';
+    }, 5000);
 }
 
 // Paragraph highlight boxes
