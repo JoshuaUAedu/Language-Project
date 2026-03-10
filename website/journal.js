@@ -40,7 +40,7 @@ const streamState = {
 
 const SERVER_URL = 'http://localhost:8000';
 
-// Chunking parameters — mirrors live_transcript_typed.py
+// Live bar chunking parameters — mirrors live_transcript_typed.py
 const MIN_CHUNK_SEC       = 1.5;
 const SILENCE_SEARCH_SEC  = 1.0;
 const SILENCE_WINDOW_SEC  = 0.05;
@@ -48,6 +48,21 @@ const MIN_AUDIO_ENERGY    = 0.01;
 const WHISPER_HALLUCINATIONS = new Set(
     ['mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye']
 );
+
+// Journal transcription parameters — mirrors full_transcript_typed.py
+const FULL_MIN_CHUNK_SEC      = 5.0;
+const FULL_SILENCE_SEARCH_SEC = 1.5;
+const FULL_MAX_DURATION_MS    = 30000;
+
+const transcribeState = {
+    isTranscribing: false,
+    audioContext: null,
+    scriptProcessor: null,
+    sampleBuffer: [],
+    totalSamples: 0,
+    _maxTimer: null,
+    _typingTimeouts: [],
+};
 
 // DOM Elements
 const englishTextEl = document.getElementById('english-text');
@@ -162,11 +177,7 @@ function initializeEventListeners() {
     correctBtn.addEventListener('click', () => recordStudyScore('correct'));
 
     // Transcribe toggle
-    transcribeBtn.addEventListener('click', function () {
-        const isTranscribing = transcribeBtn.classList.toggle('transcribing');
-        transcribeBtn.textContent = isTranscribing ? 'End Transcription' : 'Transcribe';
-        transcribeIndicator.classList.toggle('active', isTranscribing);
-    });
+    transcribeBtn.addEventListener('click', toggleTranscription);
     
     // Journal list items (delegated in loadJournalEntries via createJournalListItem)
 }
@@ -455,6 +466,7 @@ async function sendAudioChunk(blob, chunkSeconds) {
     try {
         const formData = new FormData();
         formData.append('file', blob, 'chunk.wav');
+        formData.append('source_lang', journalState.leftLanguage);
         formData.append('target_lang', journalState.rightLanguage);
         const response = await fetch(`${SERVER_URL}/transcribe`, { method: 'POST', body: formData });
         if (!response.ok) return;
@@ -506,6 +518,195 @@ function showTranscriptionChunk(text, chunkSeconds) {
         listeningIndicator.style.maxWidth = '';
     }, words.length * delayPerWord + 5000);
     streamState._shrinkTimer = resetId;
+}
+
+// ── Journal Transcription (Transcribe button) ────────────────────────────────
+
+function toggleTranscription() {
+    if (transcribeState.isTranscribing) {
+        stopTranscription();
+    } else {
+        startTranscription();
+    }
+}
+
+async function startTranscription() {
+    if (transcribeState.isTranscribing) return;
+    try {
+        // Reuse the bar's live stream if active — avoids a second getUserMedia call
+        const stream = streamState.mediaStream
+            || await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        const AudioCtx = window.AudioContext || /** @type {any} */ (window).webkitAudioContext;
+        transcribeState.audioContext = new AudioCtx();
+        const sampleRate = transcribeState.audioContext.sampleRate;
+
+        const source    = transcribeState.audioContext.createMediaStreamSource(stream);
+        const processor = transcribeState.audioContext.createScriptProcessor(4096, 1, 1);
+        transcribeState.scriptProcessor = processor;
+        transcribeState.sampleBuffer    = [];
+        transcribeState.totalSamples    = 0;
+        transcribeState.isTranscribing  = true;
+
+        const minSamples    = Math.floor(sampleRate * FULL_MIN_CHUNK_SEC);
+        const searchSamples = Math.floor(sampleRate * FULL_SILENCE_SEARCH_SEC);
+
+        processor.onaudioprocess = e => {
+            if (!transcribeState.isTranscribing) return;
+            const input = e.inputBuffer.getChannelData(0);
+            transcribeState.sampleBuffer.push(new Float32Array(input));
+            transcribeState.totalSamples += input.length;
+            if (transcribeState.totalSamples >= minSamples + searchSamples) {
+                processTranscribeBuffer(sampleRate, minSamples);
+            }
+        };
+
+        // Silent gain node — no mic playback
+        const silentGain = transcribeState.audioContext.createGain();
+        silentGain.gain.value = 0;
+        source.connect(processor);
+        processor.connect(silentGain);
+        silentGain.connect(transcribeState.audioContext.destination);
+
+        // Update button UI
+        transcribeBtn.classList.add('transcribing');
+        transcribeBtn.textContent = 'End Transcription';
+        transcribeIndicator.classList.add('active');
+
+        // Clear placeholder text so typed content starts clean
+        const EN_PLACEHOLDER = 'Waiting for transcription... Type or dictate here.';
+        const ES_PLACEHOLDER = 'Traducción pendiente... Escriba o dicte aquí.';
+        if (englishTextEl.textContent.trim() === EN_PLACEHOLDER) englishTextEl.innerHTML = '';
+        if (spanishTextEl.textContent.trim() === ES_PLACEHOLDER) spanishTextEl.innerHTML = '';
+
+        // Auto-stop after 30 seconds
+        transcribeState._maxTimer = setTimeout(() => {
+            if (transcribeState.isTranscribing) stopTranscription();
+        }, FULL_MAX_DURATION_MS);
+
+    } catch (err) {
+        console.warn('Could not start transcription:', err);
+    }
+}
+
+function stopTranscription() {
+    transcribeState.isTranscribing = false;
+    clearTimeout(transcribeState._maxTimer);
+
+    // Cancel any in-progress typing animations
+    transcribeState._typingTimeouts.forEach(id => clearTimeout(id));
+    transcribeState._typingTimeouts = [];
+
+    if (transcribeState.scriptProcessor) {
+        transcribeState.scriptProcessor.disconnect();
+        transcribeState.scriptProcessor = null;
+    }
+    if (transcribeState.audioContext) {
+        transcribeState.audioContext.close();
+        transcribeState.audioContext = null;
+    }
+    transcribeState.sampleBuffer  = [];
+    transcribeState.totalSamples  = 0;
+
+    // Reset button UI
+    transcribeBtn.classList.remove('transcribing');
+    transcribeBtn.textContent = 'Transcribe';
+    transcribeIndicator.classList.remove('active');
+
+    // Finalize paragraph highlights on both pages
+    highlightParagraphs(englishTextEl);
+    highlightParagraphs(spanishTextEl);
+
+    // Sync journal state so Save picks up the new content
+    journalState.englishText = englishTextEl.innerHTML;
+    journalState.spanishText = spanishTextEl.innerHTML;
+}
+
+function processTranscribeBuffer(sampleRate, minSamples) {
+    // Flatten buffer
+    const flat = new Float32Array(transcribeState.totalSamples);
+    let offset = 0;
+    for (const chunk of transcribeState.sampleBuffer) {
+        flat.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    // Find silence cut point and split
+    const cutPoint  = findCutPoint(flat, minSamples, sampleRate);
+    const sendAudio = flat.slice(0, cutPoint);
+    const remaining = flat.slice(cutPoint);
+
+    transcribeState.sampleBuffer  = [remaining];
+    transcribeState.totalSamples  = remaining.length;
+
+    const chunkSeconds = cutPoint / sampleRate;
+    const wavBlob = encodeWAV(sendAudio, sampleRate);
+    sendTranscribeChunk(wavBlob, chunkSeconds);
+}
+
+async function sendTranscribeChunk(blob, chunkSeconds) {
+    try {
+        const formData = new FormData();
+        formData.append('file', blob, 'chunk.wav');
+        formData.append('source_lang', journalState.leftLanguage);
+        formData.append('target_lang', journalState.rightLanguage);
+
+        const response = await fetch(`${SERVER_URL}/transcribe`, { method: 'POST', body: formData });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const transcriptWords  = (data.transcription || '').trim().split(/\s+/).filter(Boolean);
+        const translationWords = (data.translation   || '').trim().split(/\s+/).filter(Boolean);
+
+        if (!transcriptWords.length) return;
+
+        typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds);
+    } catch (err) {
+        console.warn('Transcribe chunk failed:', err);
+    }
+}
+
+function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds) {
+    // Delay per word matches full_transcript_typed.py formula
+    const delay = Math.max(50, Math.min(500, (chunkSeconds / transcriptWords.length) * 1000));
+
+    // Blank spacer between chunks if page already has content
+    if (englishTextEl.children.length > 0) {
+        englishTextEl.appendChild(document.createElement('div'));
+    }
+    if (spanishTextEl.children.length > 0) {
+        spanishTextEl.appendChild(document.createElement('div'));
+    }
+
+    // One <div> per chunk on each page
+    const leftDiv  = document.createElement('div');
+    const rightDiv = document.createElement('div');
+    englishTextEl.appendChild(leftDiv);
+    spanishTextEl.appendChild(rightDiv);
+
+    // Type transcript into left page word-by-word
+    transcriptWords.forEach((word, i) => {
+        const id = setTimeout(() => {
+            leftDiv.textContent += (leftDiv.textContent ? ' ' : '') + word;
+        }, i * delay);
+        transcribeState._typingTimeouts.push(id);
+    });
+
+    // Type translation into right page simultaneously at the same pace
+    translationWords.forEach((word, i) => {
+        const id = setTimeout(() => {
+            rightDiv.textContent += (rightDiv.textContent ? ' ' : '') + word;
+        }, i * delay);
+        transcribeState._typingTimeouts.push(id);
+    });
+
+    // After chunk is fully typed, sync journal state for saving
+    const donMs = Math.max(transcriptWords.length, translationWords.length) * delay;
+    const id = setTimeout(() => {
+        journalState.englishText = englishTextEl.innerHTML;
+        journalState.spanishText = spanishTextEl.innerHTML;
+    }, donMs);
+    transcribeState._typingTimeouts.push(id);
 }
 
 // Paragraph highlight boxes

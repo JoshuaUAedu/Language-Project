@@ -40,6 +40,7 @@ app.add_middleware(
 async def transcribe_audio(
     file: UploadFile = File(...),
     target_lang: str = Form('es'),
+    source_lang: str = Form(''),
 ):
     audio_bytes = await file.read()
 
@@ -58,8 +59,8 @@ async def transcribe_audio(
     with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
-    # Transcription
-    text, src_lang = transcription(temp_path, transcriber_model)
+    # Transcription — force language when provided, else auto-detect
+    text, src_lang = transcription(temp_path, transcriber_model, forced_lang=source_lang or None)
 
     # Resolve target language name from ISO code, fall back to Spanish
     target_name = LANG_CODE_TO_NAME.get(target_lang, 'Spanish')
