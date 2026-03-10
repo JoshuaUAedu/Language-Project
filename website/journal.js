@@ -33,12 +33,25 @@ const journalState = {
 // Audio streaming state
 const streamState = {
     mediaStream: null,
-    mediaRecorder: null,
-    isStreaming: false
+    audioContext: null,
+    scriptProcessor: null,
+    sampleBuffer: [],
+    totalSamples: 0,
+    isStreaming: false,
+    _typingTimeouts: [],
+    _shrinkTimer: null
 };
 
 const SERVER_URL = 'http://localhost:8000';
-const CHUNK_DURATION_MS = 4000;
+
+// Chunking parameters — mirrors live_transcript_typed.py
+const MIN_CHUNK_SEC       = 1.5;
+const SILENCE_SEARCH_SEC  = 1.0;
+const SILENCE_WINDOW_SEC  = 0.05;
+const MIN_AUDIO_ENERGY    = 0.01;
+const WHISPER_HALLUCINATIONS = new Set(
+    ['mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye']
+);
 
 // DOM Elements
 const englishTextEl = document.getElementById('english-text');
@@ -293,8 +306,40 @@ async function startAudioStreaming() {
     if (streamState.isStreaming) return;
     try {
         streamState.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const AudioCtx = window.AudioContext || /** @type {any} */ (window).webkitAudioContext;
+        streamState.audioContext = new AudioCtx();
+
+        const sampleRate = streamState.audioContext.sampleRate;
+        const source = streamState.audioContext.createMediaStreamSource(streamState.mediaStream);
+
+        // ScriptProcessor collects raw PCM — bufferSize 4096 matches Python BLOCKSIZE feel
+        const processor = streamState.audioContext.createScriptProcessor(4096, 1, 1);
+        streamState.scriptProcessor = processor;
+        streamState.sampleBuffer = [];
+        streamState.totalSamples = 0;
         streamState.isStreaming = true;
-        recordNextChunk();
+
+        const minSamples    = Math.floor(sampleRate * MIN_CHUNK_SEC);
+        const searchSamples = Math.floor(sampleRate * SILENCE_SEARCH_SEC);
+
+        processor.onaudioprocess = e => {
+            if (!streamState.isStreaming) return;
+            const input = e.inputBuffer.getChannelData(0);
+            streamState.sampleBuffer.push(new Float32Array(input));
+            streamState.totalSamples += input.length;
+
+            if (streamState.totalSamples >= minSamples + searchSamples) {
+                processBuffer(sampleRate, minSamples);
+            }
+        };
+
+        // Silent gain node prevents mic feedback through speakers
+        const silentGain = streamState.audioContext.createGain();
+        silentGain.gain.value = 0;
+        source.connect(processor);
+        processor.connect(silentGain);
+        silentGain.connect(streamState.audioContext.destination);
+
     } catch (err) {
         console.warn('Microphone access denied:', err);
         listeningText.textContent = 'Microphone access denied';
@@ -303,76 +348,148 @@ async function startAudioStreaming() {
 
 function stopAudioStreaming() {
     streamState.isStreaming = false;
-    if (streamState.mediaRecorder && streamState.mediaRecorder.state !== 'inactive') {
-        streamState.mediaRecorder.stop();
+    streamState._typingTimeouts.forEach(id => clearTimeout(id));
+    streamState._typingTimeouts = [];
+    clearTimeout(streamState._shrinkTimer);
+
+    if (streamState.scriptProcessor) {
+        streamState.scriptProcessor.disconnect();
+        streamState.scriptProcessor = null;
+    }
+    if (streamState.audioContext) {
+        streamState.audioContext.close();
+        streamState.audioContext = null;
     }
     if (streamState.mediaStream) {
         streamState.mediaStream.getTracks().forEach(t => t.stop());
         streamState.mediaStream = null;
     }
-    streamState.mediaRecorder = null;
+    streamState.sampleBuffer = [];
+    streamState.totalSamples = 0;
 }
 
-function recordNextChunk() {
-    if (!streamState.isStreaming || !streamState.mediaStream) return;
+// ── Chunking (mirrors live_transcript_typed.py logic) ───────────────────────
 
-    const chunks = [];
-    const recorder = new MediaRecorder(streamState.mediaStream);
-    streamState.mediaRecorder = recorder;
+function processBuffer(sampleRate, minSamples) {
+    // Flatten accumulated buffers into one array
+    const flat = new Float32Array(streamState.totalSamples);
+    let offset = 0;
+    for (const chunk of streamState.sampleBuffer) {
+        flat.set(chunk, offset);
+        offset += chunk.length;
+    }
 
-    recorder.ondataavailable = e => {
-        if (e.data.size > 0) chunks.push(e.data);
-    };
+    const cutPoint = findCutPoint(flat, minSamples, sampleRate);
+    const sendAudio = flat.slice(0, cutPoint);
+    const remaining = flat.slice(cutPoint);
 
-    recorder.onstop = async () => {
-        if (chunks.length && streamState.isStreaming) {
-            const blob = new Blob(chunks, { type: recorder.mimeType });
-            await sendAudioChunk(blob, recorder.mimeType);
-        }
-        // Chain the next chunk immediately if still active
-        if (streamState.isStreaming) recordNextChunk();
-    };
+    // Reset buffer to remainder after cut
+    streamState.sampleBuffer = [remaining];
+    streamState.totalSamples = remaining.length;
 
-    recorder.start();
-    setTimeout(() => {
-        if (recorder.state === 'recording') recorder.stop();
-    }, CHUNK_DURATION_MS);
+    // Skip silent chunks
+    if (computeRMS(sendAudio) < MIN_AUDIO_ENERGY) return;
+
+    const chunkSeconds = cutPoint / sampleRate;
+    const wavBlob = encodeWAV(sendAudio, sampleRate);
+    sendAudioChunk(wavBlob, chunkSeconds);
 }
 
-async function sendAudioChunk(blob, mimeType) {
+function findCutPoint(audio, targetSample, sampleRate) {
+    const win        = Math.floor(sampleRate * SILENCE_WINDOW_SEC);
+    const searchSpan = Math.floor(sampleRate * SILENCE_SEARCH_SEC);
+    const lo   = Math.max(0, targetSample - searchSpan);
+    const hi   = Math.min(audio.length - win, targetSample + Math.floor(searchSpan / 2));
+    const step = Math.max(1, Math.floor(win / 2));
+    let bestPos = targetSample, minRms = Infinity;
+    for (let i = lo; i < hi; i += step) {
+        const rms = computeRMS(audio.subarray(i, i + win));
+        if (rms < minRms) { minRms = rms; bestPos = i; }
+    }
+    return bestPos;
+}
+
+function computeRMS(samples) {
+    let sum = 0;
+    for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+    return Math.sqrt(sum / samples.length);
+}
+
+function encodeWAV(samples, sampleRate) {
+    const dataLen = samples.length * 2; // 16-bit = 2 bytes/sample
+    const buf  = new ArrayBuffer(44 + dataLen);
+    const view = new DataView(buf);
+    const str  = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+
+    str(0,  'RIFF');  view.setUint32(4,  36 + dataLen, true);
+    str(8,  'WAVE');  str(12, 'fmt ');
+    view.setUint32(16, 16, true);           // PCM chunk size
+    view.setUint16(20,  1, true);           // PCM format
+    view.setUint16(22,  1, true);           // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byte rate
+    view.setUint16(32,  2, true);           // block align
+    view.setUint16(34, 16, true);           // bits per sample
+    str(36, 'data'); view.setUint32(40, dataLen, true);
+
+    let off = 44;
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        off += 2;
+    }
+    return new Blob([buf], { type: 'audio/wav' });
+}
+
+async function sendAudioChunk(blob, chunkSeconds) {
     try {
-        const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
         const formData = new FormData();
-        formData.append('file', blob, `chunk.${ext}`);
-
-        const response = await fetch(`${SERVER_URL}/transcribe`, {
-            method: 'POST',
-            body: formData
-        });
+        formData.append('file', blob, 'chunk.wav');
+        const response = await fetch(`${SERVER_URL}/transcribe`, { method: 'POST', body: formData });
         if (!response.ok) return;
-
         const data = await response.json();
         const text = (data.transcription || '').trim();
-        if (text) showTranscriptionChunk(text);
+        if (text) showTranscriptionChunk(text, chunkSeconds);
     } catch (err) {
         console.warn('Chunk send failed:', err);
     }
 }
 
-function showTranscriptionChunk(text) {
-    listeningText.textContent = text;
+// ── Typing animation (mirrors typing_worker in live_transcript_typed.py) ────
 
-    // Expand bar width proportional to text length (characters → pixels)
-    const minWidth = 320;
-    const extraWidth = Math.min(text.length * 7, 700);
-    listeningIndicator.style.maxWidth = `${minWidth + extraWidth}px`;
+function showTranscriptionChunk(text, chunkSeconds) {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (!words.length) return;
 
-    // After a pause, shrink back and reset label
+    // Drop known Whisper hallucinations (≤3 words, all hallucinations)
+    const cleaned = words.map(w => w.replace(/[.,!?]/g, '').toLowerCase());
+    if (words.length <= 3 && cleaned.every(w => WHISPER_HALLUCINATIONS.has(w))) return;
+
+    // Cancel any ongoing typing and pending reset
+    streamState._typingTimeouts.forEach(id => clearTimeout(id));
+    streamState._typingTimeouts = [];
     clearTimeout(streamState._shrinkTimer);
-    streamState._shrinkTimer = setTimeout(() => {
+
+    // Clear bar and start typing the new chunk
+    listeningText.textContent = '';
+    const delayPerWord = Math.max(50, Math.min(500, (chunkSeconds / words.length) * 1000));
+
+    words.forEach((word, i) => {
+        const id = setTimeout(() => {
+            listeningText.textContent += (i > 0 ? ' ' : '') + word;
+            // Expand bar proportional to current text length
+            const extra = Math.min(listeningText.textContent.length * 7, 700);
+            listeningIndicator.style.maxWidth = `${320 + extra}px`;
+        }, i * delayPerWord);
+        streamState._typingTimeouts.push(id);
+    });
+
+    // After the last word + 5s, shrink bar and restore placeholder
+    const resetId = setTimeout(() => {
         listeningText.textContent = 'Listening for transcription...';
         listeningIndicator.style.maxWidth = '';
-    }, 5000);
+    }, words.length * delayPerWord + 5000);
+    streamState._shrinkTimer = resetId;
 }
 
 // Paragraph highlight boxes
