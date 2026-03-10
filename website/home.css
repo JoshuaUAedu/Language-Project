@@ -1,0 +1,397 @@
+/* Reset & Base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --accent-color: #D21F3C;
+    --accent-hover: #B01A32;
+    --page-color: #FFFEF7;
+    --text-color: #1A1A1A;
+    --light-bg: #F5F5F5;
+    --border-color: #E5E7EB;
+    --gray-text: #6B7280;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+body {
+    font-family: 'Merriweather', serif;
+    background: var(--light-bg);
+    min-height: 100vh;
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Top Bar ── */
+.top-bar {
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.app-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-color);
+    letter-spacing: 0.01em;
+}
+
+.app-badge {
+    background: var(--accent-color);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.new-journal-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: 'Merriweather', serif;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.02em;
+}
+
+.new-journal-btn svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.new-journal-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(210, 31, 60, 0.35);
+}
+
+.new-journal-btn:active {
+    transform: translateY(0);
+}
+
+/* ── Main Container ── */
+.main-container {
+    flex: 1;
+    padding: 2rem 2.5rem 3rem;
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ── Section Header ── */
+.section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.section-count {
+    font-size: 0.9rem;
+    color: var(--gray-text);
+    font-weight: 400;
+}
+
+/* ── Calendar Grid ── */
+.journal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+}
+
+/* ── Journal Card ── */
+.journal-card {
+    background: var(--page-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+}
+
+.journal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Card date header — accent colored like the journal title bar */
+.card-date-header {
+    background: var(--accent-color);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.card-day {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+.card-month-year {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+}
+
+.card-month {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.card-year {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 400;
+}
+
+/* Card body */
+.card-body {
+    padding: 1rem 1.25rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex: 1;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-languages {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--gray-text);
+    font-weight: 400;
+}
+
+.card-lang-arrow {
+    color: var(--accent-color);
+    font-style: normal;
+}
+
+.card-preview {
+    font-size: 0.82rem;
+    color: var(--gray-text);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+}
+
+/* Score row */
+.card-scores {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.score-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+}
+
+.score-pill.correct {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.score-pill.missed {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Horizontal rule between sections */
+.card-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 0 1.25rem;
+    flex-shrink: 0;
+}
+
+/* Delete button */
+.card-delete-btn {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+    flex-shrink: 0;
+}
+
+.card-delete-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+.journal-card:hover .card-delete-btn {
+    opacity: 1;
+}
+
+.card-delete-btn:hover {
+    background: rgba(220, 38, 38, 0.85);
+}
+
+/* ── Empty State ── */
+.empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    padding: 5rem 2rem;
+    color: var(--gray-text);
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    opacity: 0.35;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    font-weight: 400;
+    opacity: 0.7;
+}
+
+.empty-cta {
+    display: inline-block;
+    padding: 0.7rem 1.75rem;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: 'Merriweather', serif;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.empty-cta:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .main-container {
+        padding: 1.5rem 1.5rem 2.5rem;
+    }
+
+    .journal-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .top-bar {
+        padding: 0.85rem 1.25rem;
+    }
+
+    .app-title {
+        font-size: 1rem;
+    }
+
+    .main-container {
+        padding: 1.25rem 1rem 2rem;
+    }
+
+    .journal-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+    }
+
+    .card-day {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .journal-grid {
+        grid-template-columns: 1fr;
+    }
+}

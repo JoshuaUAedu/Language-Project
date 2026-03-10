@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LDT3 - Language Transcription & Translation</title>
+    <link rel="stylesheet" href="home.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <h1 class="app-title">Language Transcription &amp; Translation</h1>
+            <span class="app-badge">LDT3</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="journal.html" class="new-journal-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New Journal
+            </a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="section-header">
+            <h2 class="section-title">Recent Journals</h2>
+            <span class="section-count" id="section-count"></span>
+        </div>
+
+        <div class="journal-grid" id="journal-grid"></div>
+
+        <div class="empty-state" id="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <p>No journals yet</p>
+            <a href="journal.html" class="empty-cta">Create your first journal</a>
+        </div>
+    </main>
+
+    <script src="home.js"></script>
+</body>
+</html>
