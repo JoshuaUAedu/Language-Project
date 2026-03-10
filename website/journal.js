@@ -1,16 +1,12 @@
-// Language names (same set as notebook/home)
+// Language names — limited to languages supported by the translation model
 const languageNames = {
     en: 'English',
     es: 'Spanish',
     fr: 'French',
     de: 'German',
-    it: 'Italian',
-    pt: 'Portuguese',
     zh: 'Chinese',
     ja: 'Japanese',
     ko: 'Korean',
-    ar: 'Arabic',
-    hi: 'Hindi'
 };
 
 const MAX_JOURNAL_TITLE_LENGTH = 50;
@@ -459,6 +455,7 @@ async function sendAudioChunk(blob, chunkSeconds) {
     try {
         const formData = new FormData();
         formData.append('file', blob, 'chunk.wav');
+        formData.append('target_lang', journalState.rightLanguage);
         const response = await fetch(`${SERVER_URL}/transcribe`, { method: 'POST', body: formData });
         if (!response.ok) return;
         const data = await response.json();

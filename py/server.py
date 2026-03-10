@@ -1,12 +1,23 @@
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import sys
 import os
 
-from translate import load_translate_model, translate
+from translate import load_translate_model, translate, LANG_NNLB_MAP
 from transcribe import load_transcription_model, transcription
+
+# Map ISO 639-1 codes (sent by the browser) → full language names used by the models
+LANG_CODE_TO_NAME = {
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'zh': 'Chinese',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+}
 
 
 # Load server for model use on client side
@@ -26,7 +37,10 @@ app.add_middleware(
 )
 
 @app.post("/transcribe")
-async def transcribe_audio(file: UploadFile = File(...)):
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    target_lang: str = Form('es'),
+):
     audio_bytes = await file.read()
 
     # Use the correct extension so ffmpeg/whisper can decode the stream
@@ -47,8 +61,14 @@ async def transcribe_audio(file: UploadFile = File(...)):
     # Transcription
     text, src_lang = transcription(temp_path, transcriber_model)
 
-    # Translation 
-    translated = translate(text, src_lang, "Spanish", translator_model)
+    # Resolve target language name from ISO code, fall back to Spanish
+    target_name = LANG_CODE_TO_NAME.get(target_lang, 'Spanish')
+
+    # Only translate if both src and target are supported by the model
+    if src_lang in LANG_NNLB_MAP and target_name in LANG_NNLB_MAP and src_lang != target_name:
+        translated = translate(text, src_lang, target_name, translator_model)
+    else:
+        translated = text  # unsupported language pair — return transcription as-is
 
     return {
         "transcription": text,
