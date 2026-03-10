@@ -11,5 +11,6 @@ GPUenv/
 __pycache__
 audio_chunks/
 env/temp.wav
-temp.wav 
+temp.wav
 config.py
+temp.webm
