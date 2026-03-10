@@ -264,9 +264,21 @@ function toggleMicrophone() {
 }
 
 // Toggle Language Script (Latin abc ↔ International 文)
+// In the listening bar: abc = transcription mode, 文 = translation mode
 function toggleLanguageScript() {
     journalState.isLatinScript = !journalState.isLatinScript;
     updateLanguageScriptUI();
+
+    // Cancel in-progress typing and reset bar placeholder to new mode
+    if (!journalState.isMicMuted) {
+        streamState._typingTimeouts.forEach(id => clearTimeout(id));
+        streamState._typingTimeouts = [];
+        clearTimeout(streamState._shrinkTimer);
+        listeningText.textContent = journalState.isLatinScript
+            ? 'Listening for transcription...'
+            : 'Listening for translation...';
+        listeningIndicator.style.maxWidth = '';
+    }
 }
 
 function updateLanguageScriptUI() {
@@ -295,7 +307,9 @@ function updateMicrophoneUI() {
         micMutedIcon.style.display = 'none';
         waveform.classList.remove('muted');
         listeningIndicator.classList.remove('muted');
-        listeningText.textContent = 'Listening for transcription...';
+        listeningText.textContent = journalState.isLatinScript
+            ? 'Listening for transcription...'
+            : 'Listening for translation...';
         startAudioStreaming();
     }
 }
@@ -448,7 +462,10 @@ async function sendAudioChunk(blob, chunkSeconds) {
         const response = await fetch(`${SERVER_URL}/transcribe`, { method: 'POST', body: formData });
         if (!response.ok) return;
         const data = await response.json();
-        const text = (data.transcription || '').trim();
+        // isLatinScript=true → transcription bar, false → translation bar
+        const text = (journalState.isLatinScript
+            ? data.transcription
+            : data.translation || '').trim();
         if (text) showTranscriptionChunk(text, chunkSeconds);
     } catch (err) {
         console.warn('Chunk send failed:', err);
@@ -484,9 +501,11 @@ function showTranscriptionChunk(text, chunkSeconds) {
         streamState._typingTimeouts.push(id);
     });
 
-    // After the last word + 5s, shrink bar and restore placeholder
+    // After the last word + 5s, shrink bar and restore mode-aware placeholder
     const resetId = setTimeout(() => {
-        listeningText.textContent = 'Listening for transcription...';
+        listeningText.textContent = journalState.isLatinScript
+            ? 'Listening for transcription...'
+            : 'Listening for translation...';
         listeningIndicator.style.maxWidth = '';
     }, words.length * delayPerWord + 5000);
     streamState._shrinkTimer = resetId;
