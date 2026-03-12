@@ -8,7 +8,7 @@ import os
 from translate import load_translate_model, translate, LANG_NNLB_MAP
 from transcribe import load_transcription_model, transcription
 
-# Map ISO 639-1 codes (sent by the browser) → full language names used by the models
+# Map Languages
 LANG_CODE_TO_NAME = {
     'en': 'English',
     'es': 'Spanish',
@@ -59,17 +59,17 @@ async def transcribe_audio(
     with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
-    # Transcription — force language when provided, else auto-detect
+    # Transcription force language when provided else auto-detect
     text, src_lang = transcription(temp_path, transcriber_model, forced_lang=source_lang or None)
 
-    # Resolve target language name from ISO code, fall back to Spanish
+    # Resolve target language name from ISO code, default Spanish
     target_name = LANG_CODE_TO_NAME.get(target_lang, 'Spanish')
 
     # Only translate if both src and target are supported by the model
     if src_lang in LANG_NNLB_MAP and target_name in LANG_NNLB_MAP and src_lang != target_name:
         translated = translate(text, src_lang, target_name, translator_model)
     else:
-        translated = text  # unsupported language pair — return transcription as-is
+        translated = text  # unsupported language pair return transcription
 
     return {
         "transcription": text,
