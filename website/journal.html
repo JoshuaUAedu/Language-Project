@@ -103,9 +103,7 @@
                                 </button>
                                 <div class="language-dropdown" id="language-left-dropdown" role="listbox" aria-hidden="true"></div>
                             </div>
-                            <div class="page-text" contenteditable="true" id="english-text">
-                                Waiting for transcription... Type or dictate here.
-                            </div>
+                            <div class="page-text" contenteditable="true" id="english-text" data-placeholder="Waiting for transcription... Type or dictate here."></div>
                         </div>
                     </div>
 
@@ -130,11 +128,15 @@
                                 </button>
                                 <div class="language-dropdown" id="language-right-dropdown" role="listbox" aria-hidden="true"></div>
                             </div>
-                            <div class="page-text" contenteditable="true" id="spanish-text">
-                                Traducción pendiente... Escriba o dicte aquí.
-                            </div>
+                            <div class="page-text" contenteditable="false" id="spanish-text" data-placeholder="Traducción pendiente... Escriba o dicte aquí."></div>
                         </div>
                     </div>
+                </div>
+                <!-- Journal page navigation -->
+                <div class="journal-page-nav" id="journal-page-nav">
+                    <button type="button" class="study-page-nav-btn" id="prev-page-btn" disabled>&#8592; Prev</button>
+                    <span class="study-page-indicator" id="binding-page-indicator">Page 1 of 1</span>
+                    <button type="button" class="study-page-nav-btn" id="next-page-btn" disabled>Next &#8594;</button>
                 </div>
                 <!-- Study mode: single centered page with flip -->
                 <div class="study-mode-view" id="study-mode-view" aria-hidden="true">
@@ -161,6 +163,11 @@
                             <button type="button" class="study-score-btn correct-btn" id="correct-btn">
                                 Correct <span class="score-badge" id="correct-count">0</span>
                             </button>
+                        </div>
+                        <div class="study-page-nav">
+                            <button type="button" class="study-page-nav-btn" id="study-prev-page-btn" disabled>&#8592; Prev</button>
+                            <span class="study-page-indicator" id="study-page-indicator">Page 1 of 1</span>
+                            <button type="button" class="study-page-nav-btn" id="study-next-page-btn" disabled>Next &#8594;</button>
                         </div>
                     </div>
                 </div>

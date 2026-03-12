@@ -20,13 +20,13 @@ from datasets import load_dataset
 # ---------------- Configuration ---------------- #
 GPU_IP = config.GPU_IP
 SERVER_PORT = 8000
-MIN_CHUNK_DURATION = 1.5    # must match live_transcript_typed  # test different windows
-SILENCE_SEARCH_WINDOW = 1.0
+MIN_CHUNK_DURATION = 1.5    # must match live_transcript_typed  # test different windows #1.5 default
+SILENCE_SEARCH_WINDOW = .5 #1.0 default
 SILENCE_WINDOW_SIZE = 0.05
 SAMPLE_RATE = 16000
 MIN_AUDIO_ENERGY = 0.01
 VERBOSE = False              # True: show transcripts and WER; False: averages only
-SAMPLES_PER_LANGUAGE = 300
+SAMPLES_PER_LANGUAGE = 20
 
 
 WHISPER_HALLUCINATIONS = {'mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye'}

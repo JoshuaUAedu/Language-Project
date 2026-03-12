@@ -77,5 +77,21 @@ async def transcribe_audio(
         "translation": translated
     }
 
+@app.post("/translate")
+async def translate_text(
+    text: str = Form(...),
+    source_lang: str = Form('en'),
+    target_lang: str = Form('es'),
+):
+    src_name    = LANG_CODE_TO_NAME.get(source_lang, 'English')
+    target_name = LANG_CODE_TO_NAME.get(target_lang, 'Spanish')
+
+    if src_name in LANG_NNLB_MAP and target_name in LANG_NNLB_MAP and src_name != target_name:
+        translated = translate(text, src_name, target_name, translator_model)
+    else:
+        translated = text
+
+    return {"translation": translated}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

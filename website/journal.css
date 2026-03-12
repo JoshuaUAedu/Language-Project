@@ -558,6 +558,44 @@ body {
     word-break: break-word;
 }
 
+.study-page-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.study-page-nav-btn {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    font-family: 'Merriweather', serif;
+    color: var(--gray-text);
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.study-page-nav-btn:hover:not(:disabled) {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.study-page-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.study-page-indicator {
+    font-size: 0.85rem;
+    color: var(--gray-text);
+    min-width: 90px;
+    text-align: center;
+}
+
 .study-controls {
     display: flex;
     align-items: center;
@@ -803,39 +841,16 @@ body {
     background: rgba(210, 31, 60, 0.02);
 }
 
-/* Paragraph highlight boxes */
-.page-text > div.para-start,
-.page-text > div.para-middle,
-.page-text > div.para-end,
-.page-text > div.para-solo {
-    background: #EDE9DC;
-    padding-left: 0.65rem;
-    padding-right: 0.65rem;
+#spanish-text {
+    cursor: default;
+    user-select: text;
 }
 
-.page-text > div.para-start {
-    border-radius: 14px 14px 0 0;
-    padding-top: 0.4rem;
-    margin-top: 0.55rem;
+#spanish-text .translation-pending {
+    color: rgba(107, 114, 128, 0.4);
+    font-style: italic;
 }
 
-.page-text > div.para-middle {
-    border-radius: 0;
-}
-
-.page-text > div.para-end {
-    border-radius: 0 0 14px 14px;
-    padding-bottom: 0.4rem;
-    margin-bottom: 0.55rem;
-}
-
-.page-text > div.para-solo {
-    border-radius: 14px;
-    padding-top: 0.4rem;
-    padding-bottom: 0.4rem;
-    margin-top: 0.55rem;
-    margin-bottom: 0.55rem;
-}
 
 .page-text:empty::before {
     content: attr(data-placeholder);
@@ -862,6 +877,22 @@ body {
     height: 8px;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 1px;
+}
+
+/* Journal page navigation bar (below the spread) */
+.journal-page-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--page-color);
+}
+
+.notebook.study-mode .journal-page-nav {
+    display: none;
 }
 
 .binding::before {
