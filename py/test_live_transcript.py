@@ -18,7 +18,7 @@ import config
 # ---------------- Configuration ---------------- #
 GPU_IP = config.GPU_IP
 SERVER_PORT = 8000
-MIN_CHUNK_DURATION = 1.5    # must match live_transcript_typed
+MIN_CHUNK_DURATION = 1.5    # must match live_transcript_typed  # test different windows
 SILENCE_SEARCH_WINDOW = 1.0
 SILENCE_WINDOW_SIZE = 0.05
 SAMPLE_RATE = 16000
