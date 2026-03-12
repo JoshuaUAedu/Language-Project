@@ -66,15 +66,17 @@ async def transcribe_audio(
     target_name = LANG_CODE_TO_NAME.get(target_lang, 'Spanish')
 
     # Only translate if both src and target are supported by the model
+    confidence = None
     if src_lang in LANG_NNLB_MAP and target_name in LANG_NNLB_MAP and src_lang != target_name:
-        translated = translate(text, src_lang, target_name, translator_model)
+        translated, confidence = translate(text, src_lang, target_name, translator_model)
     else:
         translated = text  # unsupported language pair return transcription
 
     return {
         "transcription": text,
         "source_language": src_lang,
-        "translation": translated
+        "translation": translated,
+        "confidence": confidence,
     }
 
 @app.post("/translate")
@@ -86,12 +88,13 @@ async def translate_text(
     src_name    = LANG_CODE_TO_NAME.get(source_lang, 'English')
     target_name = LANG_CODE_TO_NAME.get(target_lang, 'Spanish')
 
+    confidence = None
     if src_name in LANG_NNLB_MAP and target_name in LANG_NNLB_MAP and src_name != target_name:
-        translated = translate(text, src_name, target_name, translator_model)
+        translated, confidence = translate(text, src_name, target_name, translator_model)
     else:
         translated = text
 
-    return {"translation": translated}
+    return {"translation": translated, "confidence": confidence}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

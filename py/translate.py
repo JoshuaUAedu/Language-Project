@@ -65,7 +65,14 @@ def translate(text, src_lang, target_lang, model_objects):
         num_beams=8,
         length_penalty=1.0,
         repetition_penalty=1.1,
-        no_repeat_ngram_size=3
+        no_repeat_ngram_size=3,
+        return_dict_in_generate=True,
+        output_scores=True,
     )
 
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    translation = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+    try:
+        confidence = float(torch.exp(outputs.sequences_scores[0]).clamp(0.0, 1.0))
+    except Exception:
+        confidence = None
+    return translation, confidence

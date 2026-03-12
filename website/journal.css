@@ -734,6 +734,9 @@ body {
     position: relative;
     margin-bottom: 1rem;
     margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .language-btn {
@@ -893,6 +896,80 @@ body {
 
 .notebook.study-mode .journal-page-nav {
     display: none;
+}
+
+.delete-page-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem 0.4rem;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-page-btn:hover:not(:disabled) {
+    border-color: #EF4444;
+    color: #EF4444;
+    background: #FEF2F2;
+}
+
+.delete-page-btn:disabled {
+    opacity: 0.25;
+    cursor: default;
+}
+
+/* Confidence toggle button — matches LDT3 badge look */
+.confidence-toggle-btn {
+    background: none;
+    border: 1.5px solid var(--accent-color);
+    border-radius: 6px;
+    color: var(--accent-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: sans-serif;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.55rem;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.confidence-toggle-btn:hover {
+    background: #FFF0F3;
+}
+
+.confidence-toggle-btn.active {
+    background: var(--accent-color);
+    color: #fff;
+}
+
+/* Confidence pill shown to the left of each translated chunk */
+.conf-label {
+    display: none;
+    font-size: 0.65rem;
+    font-family: sans-serif;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.page-text.show-confidence > div[data-confidence] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-text.show-confidence > div[data-confidence] .conf-label {
+    display: inline-block;
 }
 
 .binding::before {

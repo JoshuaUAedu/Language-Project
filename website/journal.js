@@ -108,15 +108,45 @@ const missedCountEl         = document.getElementById('missed-count');
 const correctCountEl        = document.getElementById('correct-count');
 const prevPageBtn           = document.getElementById('prev-page-btn');
 const nextPageBtn           = document.getElementById('next-page-btn');
+const deletePageBtn         = document.getElementById('delete-page-btn');
+const confidenceToggleBtn   = document.getElementById('confidence-toggle-btn');
 const bindingPageIndicator  = document.getElementById('binding-page-indicator');
 const studyPrevPageBtn      = document.getElementById('study-prev-page-btn');
 const studyNextPageBtn      = document.getElementById('study-next-page-btn');
 const studyPageIndicator    = document.getElementById('study-page-indicator');
 
+// Confidence display toggle
+let showConfidence = false;
+
+function confidenceColor(score) {
+    if (score === null || score === undefined) return '#D1D5DB';
+    if (score >= 0.65) return '#10B981'; // green — high
+    if (score >= 0.35) return '#F59E0B'; // amber — medium
+    return '#EF4444';                    // red   — low
+}
+
+function applyConfidenceToDiv(div, score) {
+    if (score === null || score === undefined || isNaN(score)) return;
+    const color = confidenceColor(score);
+    div.dataset.confidence = score.toFixed(3);
+    let label = div.querySelector('.conf-label');
+    if (!label) {
+        label = document.createElement('span');
+        label.className = 'conf-label';
+        div.prepend(label);
+    }
+    label.textContent = `${Math.round(score * 100)}%`;
+    label.style.background = color;
+}
+
+// Flag to suppress left-page observer during programmatic renders
+let suppressLeftObserver = false;
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     buildLanguageDropdowns();
     initializeEventListeners();
+    setupLeftPageObserver();
     loadJournalEntries();
     checkForExistingJournal();
     renderCurrentPage();
@@ -159,10 +189,18 @@ function initializeEventListeners() {
     correctBtn.addEventListener('click', () => recordStudyScore('correct'));
 
     transcribeBtn.addEventListener('click', toggleTranscription);
+    confidenceToggleBtn.addEventListener('click', toggleConfidenceDisplay);
 
     // Page navigation
+    deletePageBtn.addEventListener('click', deleteCurrentPage);
     prevPageBtn.addEventListener('click', () => goToPage(journalState.currentPageIndex - 1));
-    nextPageBtn.addEventListener('click', () => goToPage(journalState.currentPageIndex + 1));
+    nextPageBtn.addEventListener('click', () => {
+        if (journalState.currentPageIndex === journalState.pages.length - 1) {
+            addNewPage();
+        } else {
+            goToPage(journalState.currentPageIndex + 1);
+        }
+    });
 
     // Study mode page navigation
     studyPrevPageBtn.addEventListener('click', () => goToStudyPage(journalState.studyPageIndex - 1));
@@ -179,18 +217,38 @@ function saveCurrentPageToState() {
 }
 
 function renderCurrentPage() {
+    suppressLeftObserver = true;
     const page = journalState.pages[journalState.currentPageIndex];
     englishTextEl.innerHTML = page.leftText || '';
     spanishTextEl.innerHTML = page.rightText || '';
+    suppressLeftObserver = false;
+    // Re-apply confidence badge colors (inline style lost on innerHTML reset)
+    Array.from(spanishTextEl.children).forEach(div => {
+        const raw = div.dataset.confidence;
+        if (!raw) return;
+        const score = parseFloat(raw);
+        if (!isNaN(score)) applyConfidenceToDiv(div, score);
+    });
+    spanishTextEl.classList.toggle('show-confidence', showConfidence);
     updatePageIndicator();
 }
 
 function updatePageIndicator() {
-    const total   = journalState.pages.length;
-    const current = journalState.currentPageIndex + 1;
+    const total      = journalState.pages.length;
+    const current    = journalState.currentPageIndex + 1;
+    const isLastPage = journalState.currentPageIndex === total - 1;
     bindingPageIndicator.textContent = `Page ${current} of ${total}`;
-    prevPageBtn.disabled = journalState.currentPageIndex === 0;
-    nextPageBtn.disabled = journalState.currentPageIndex === total - 1;
+    prevPageBtn.disabled    = journalState.currentPageIndex === 0;
+    nextPageBtn.disabled    = false;
+    nextPageBtn.innerHTML   = isLastPage ? '+ New Page' : 'Next &#8594;';
+    deletePageBtn.disabled  = total === 1;
+}
+
+function deleteCurrentPage() {
+    if (journalState.pages.length === 1) return;
+    journalState.pages.splice(journalState.currentPageIndex, 1);
+    journalState.currentPageIndex = Math.min(journalState.currentPageIndex, journalState.pages.length - 1);
+    renderCurrentPage();
 }
 
 function goToPage(index) {
@@ -205,6 +263,37 @@ function addNewPage() {
     journalState.pages.push({ leftText: '', rightText: '' });
     journalState.currentPageIndex = journalState.pages.length - 1;
     renderCurrentPage();
+}
+
+// ── Left Page Deletion Mirror ─────────────────────────────────────────────────
+
+function setupLeftPageObserver() {
+    const observer = new MutationObserver((mutations) => {
+        if (suppressLeftObserver) return;
+        for (const mutation of mutations) {
+            if (mutation.type !== 'childList') continue;
+            const removedElements = Array.from(mutation.removedNodes).filter(n => n.nodeType === Node.ELEMENT_NODE);
+            if (removedElements.length === 0) continue;
+
+            // previousSibling tells us what came before the removed block in the DOM
+            let startIndex = 0;
+            const prevSib = mutation.previousSibling;
+            if (prevSib && prevSib.nodeType === Node.ELEMENT_NODE) {
+                const leftChildren = Array.from(englishTextEl.children);
+                startIndex = leftChildren.indexOf(prevSib) + 1;
+            }
+
+            // Remove the corresponding right-page children at the same indices
+            for (let i = 0; i < removedElements.length; i++) {
+                if (startIndex < spanishTextEl.children.length) {
+                    spanishTextEl.removeChild(spanishTextEl.children[startIndex]);
+                }
+            }
+            // Persist the updated right page content
+            journalState.pages[journalState.currentPageIndex].rightText = spanishTextEl.innerHTML;
+        }
+    });
+    observer.observe(englishTextEl, { childList: true });
 }
 
 // ── Language Dropdowns ────────────────────────────────────────────────────────
@@ -279,6 +368,13 @@ function updateLanguageOptionSelected() {
         opt.classList.toggle('is-selected', opt.dataset.lang === journalState.rightLanguage);
         opt.disabled = opt.dataset.lang === journalState.leftLanguage;
     });
+}
+
+// Toggle Confidence Display
+function toggleConfidenceDisplay() {
+    showConfidence = !showConfidence;
+    spanishTextEl.classList.toggle('show-confidence', showConfidence);
+    confidenceToggleBtn.classList.toggle('active', showConfidence);
 }
 
 // Toggle Microphone Mute
@@ -622,13 +718,13 @@ async function sendTranscribeChunk(blob, chunkSeconds) {
         const translationWords = (data.translation   || '').trim().split(/\s+/).filter(Boolean);
 
         if (!transcriptWords.length) return;
-        typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds);
+        typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds, data.confidence ?? null);
     } catch (err) {
         console.warn('Transcribe chunk failed:', err);
     }
 }
 
-function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds) {
+function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds, confidence = null) {
     const delay = Math.max(50, Math.min(500, (chunkSeconds / transcriptWords.length) * 1000));
 
     if (englishTextEl.children.length > 0) englishTextEl.appendChild(document.createElement('div'));
@@ -636,6 +732,7 @@ function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds) {
 
     const leftDiv  = document.createElement('div');
     const rightDiv = document.createElement('div');
+    applyConfidenceToDiv(rightDiv, confidence);
     englishTextEl.appendChild(leftDiv);
     spanishTextEl.appendChild(rightDiv);
 
@@ -646,9 +743,11 @@ function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds) {
         transcribeState._typingTimeouts.push(id);
     });
 
+    const rightTextNode = document.createTextNode('');
+    rightDiv.appendChild(rightTextNode);
     translationWords.forEach((word, i) => {
         const id = setTimeout(() => {
-            rightDiv.textContent += (rightDiv.textContent ? ' ' : '') + word;
+            rightTextNode.textContent += (rightTextNode.textContent ? ' ' : '') + word;
         }, i * delay);
         transcribeState._typingTimeouts.push(id);
     });
@@ -703,8 +802,8 @@ async function translateLine(text, targetDiv) {
         if (!response.ok) { targetDiv.textContent = ''; return; }
 
         const data = await response.json();
-        targetDiv.textContent = data.translation || '';
         targetDiv.classList.remove('translation-pending');
+        targetDiv.textContent = data.translation || '';
         saveCurrentPageToState();
     } catch (err) {
         console.warn('Translation failed:', err);
