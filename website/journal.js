@@ -935,9 +935,30 @@ function createJournalListItem(entry) {
             <polyline points="10 9 9 9 8 9"></polyline>
         </svg>
         <span class="journal-name">${escapeHtml(entry.title)}</span>
+        <button type="button" class="journal-delete-btn" aria-label="Delete journal" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path><path d="M14 11v6"></path>
+                <path d="M9 6V4h6v2"></path>
+            </svg>
+        </button>
     `;
     div.addEventListener('click', () => openJournal(entry.id));
+    div.querySelector('.journal-delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteJournalEntry(entry.id);
+    });
     return div;
+}
+
+function deleteJournalEntry(id) {
+    const entries = getJournalEntries().filter(e => e.id !== id);
+    saveJournalEntries(entries);
+    if (journalState.currentJournalId === id) {
+        journalState.currentJournalId = null;
+    }
+    loadJournalEntries();
 }
 
 // ── Study Mode ────────────────────────────────────────────────────────────────
@@ -974,6 +995,7 @@ function exitStudyMode() {
 function getTextFromHTML(html) {
     const el = document.createElement('div');
     el.innerHTML = html || '';
+    el.querySelectorAll('.conf-label').forEach(s => s.remove());
     return el.textContent.trim().replace(/\n{3,}/g, '\n\n');
 }
 

@@ -898,6 +898,10 @@ body {
     display: none;
 }
 
+.notebook.study-mode .confidence-toggle-btn {
+    display: none;
+}
+
 .delete-page-btn {
     display: flex;
     align-items: center;
@@ -1042,6 +1046,8 @@ body {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .sidebar-header {
@@ -1052,6 +1058,7 @@ body {
     margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 2px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -1097,58 +1104,92 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .journal-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
+    gap: 0.6rem;
+    padding: 0.75rem 0.85rem;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
+    min-width: 0;
 }
 
 .journal-item:hover {
     background: var(--light-bg);
     border-color: var(--accent-color);
-    transform: translateX(5px);
+    transform: translateX(3px);
 }
 
 .journal-icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     color: var(--accent-color);
     flex-shrink: 0;
 }
 
 .journal-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--text-color);
     font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.journal-delete-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: none;
+    border: none;
+    border-radius: 5px;
+    color: #9CA3AF;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    padding: 0;
+}
+
+.journal-item:hover .journal-delete-btn {
+    opacity: 1;
+}
+
+.journal-delete-btn:hover {
+    color: #EF4444;
+    background: #FEF2F2;
 }
 
 /* Scrollbar Styling */
-.page::-webkit-scrollbar,
-.journal-list::-webkit-scrollbar {
+.page::-webkit-scrollbar {
     width: 8px;
 }
 
-.page::-webkit-scrollbar-track,
-.journal-list::-webkit-scrollbar-track {
+.page::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
 }
 
-.page::-webkit-scrollbar-thumb,
-.journal-list::-webkit-scrollbar-thumb {
+.page::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
 }
 
-.page::-webkit-scrollbar-thumb:hover,
-.journal-list::-webkit-scrollbar-thumb:hover {
+.page::-webkit-scrollbar-thumb:hover {
     background: rgba(210, 31, 60, 0.3);
+}
+
+.journal-list::-webkit-scrollbar {
+    display: none;
 }
 
 /* Responsive Design */
