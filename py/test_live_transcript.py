@@ -9,6 +9,8 @@ import sys
 import librosa
 from jiwer import wer
 import config
+from datasets import load_dataset
+
 
 
 # Test harness for live_transcript_typed pipeline
@@ -23,6 +25,9 @@ SILENCE_SEARCH_WINDOW = 1.0
 SILENCE_WINDOW_SIZE = 0.05
 SAMPLE_RATE = 16000
 MIN_AUDIO_ENERGY = 0.01
+VERBOSE = False              # True: show transcripts and WER; False: averages only
+SAMPLES_PER_LANGUAGE = 300
+
 
 WHISPER_HALLUCINATIONS = {'mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye'}
 
@@ -33,12 +38,33 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 # Anchor paths relative to this script's location, not the working directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ---- Files to test ----
-# Use os.path.join(BASE_DIR, '..', 'audio', 'filename.wav') for files in the audio folder.
-# Each entry: (path, "optional reference transcript or None")
+
+# ---- FLEURS language configs ----
+FLEURS_LANGUAGES = {
+    "English (en_us)":   "en_us",
+    "Spanish (es_419)":  "es_419",
+    # "Japanese (ja_jp)":  "ja_jp", #unicode glitching
+    "German (de_de)":    "de_de",
+    "French (fr_fr)":    "fr_fr",
+}
+
+# Loaded lazily in main() to avoid slow startup when not all languages are needed
+_fleurs_cache: dict = {}
+
+def load_fleurs(lang_code: str):
+    if lang_code not in _fleurs_cache:
+        _fleurs_cache[lang_code] = load_dataset(
+            "google/fleurs", lang_code,
+            split=f"train[:{SAMPLES_PER_LANGUAGE}]",
+            trust_remote_code=True,
+        )
+    return _fleurs_cache[lang_code]
+
+
+# ---- Static files to test (optional) ----
+# Each entry: (path, "reference transcript or None")
 TEST_FILES = [
-    (os.path.join(BASE_DIR, '..', 'audio', 'recording2.wav'), "I am testing for Dr. Li my language transcription project"),
-    # (os.path.join(BASE_DIR, '..', 'audio', 'recording.wav'), None),
+    # (os.path.join(BASE_DIR, '..', 'audio', 'recording2.wav'), "I am testing for Dr. Li my language transcription project"),
 ]
 
 
@@ -81,10 +107,13 @@ def typing_worker():
                 safe = sanitize(word)
                 if safe:
                     full_transcript_words.append(safe)
-                    print(safe, end=' ', flush=True)
+                    if VERBOSE:
+                        print(safe, end=' ', flush=True)
                 else:
-                    print(' ', end='', flush=True)
-                time.sleep(delay)
+                    if VERBOSE:
+                        print(' ', end='', flush=True)
+                if VERBOSE:
+                    time.sleep(delay)
         finally:
             typing_queue.task_done()
 
@@ -141,10 +170,12 @@ def process_file(audio_path):
     full_transcript_words = []
     send_threads = []
 
-    print(f"\nLoading: {audio_path}")
+    if VERBOSE:
+        print(f"\nLoading: {audio_path}")
     audio, _ = librosa.load(audio_path, sr=SAMPLE_RATE, mono=True)
     audio = audio.astype(np.float32)
-    print(f"Duration: {len(audio) / SAMPLE_RATE:.1f}s — processing...\n")
+    if VERBOSE:
+        print(f"Duration: {len(audio) / SAMPLE_RATE:.1f}s — processing...\n")
 
     worker_thread = threading.Thread(target=typing_worker, daemon=False)
     worker_thread.start()
@@ -237,12 +268,34 @@ def compare_transcripts(chunked, full_file, reference=None):
     print("=" * 50)
 
 
+# ---------------- FLEURS Audio Helper ---------------- #
+_FLEURS_TEMP_WAV = os.path.join(BASE_DIR, "fleurs_temp.wav")
+
+def process_fleurs_sample(sample) -> tuple[str, str, str]:
+    """
+    Write a FLEURS sample's audio to a temp WAV, run both pipelines,
+    and return (chunked_transcript, full_transcript, reference).
+    """
+    audio_array = np.array(sample["audio"]["array"], dtype=np.float32)
+    sr = sample["audio"]["sampling_rate"]
+    reference = sample["raw_transcription"]
+
+    # Resample to SAMPLE_RATE if needed
+    if sr != SAMPLE_RATE:
+        audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=SAMPLE_RATE)
+
+    # Write int16 WAV for process_file (which uses librosa.load internally)
+    audio_int16 = (audio_array * 32767).clip(-32768, 32767).astype(np.int16)
+    wav_write(_FLEURS_TEMP_WAV, SAMPLE_RATE, audio_int16)
+
+    chunked = process_file(_FLEURS_TEMP_WAV)
+    full = send_full_file_to_server(_FLEURS_TEMP_WAV)
+    return chunked, full, reference
+
+
 # ---------------- Main ---------------- #
 def main():
-    if not TEST_FILES:
-        print("No test files configured. Add entries to TEST_FILES in the script.")
-        return
-
+    # --- Static test files ---
     for audio_path, reference in TEST_FILES:
         if not os.path.exists(audio_path):
             print(f"File not found: {audio_path} — skipping.")
@@ -251,15 +304,45 @@ def main():
         print(f"\n{'=' * 50}")
         print(f"Testing: {audio_path}")
 
-        # Chunked pipeline (live_transcript_typed style)
         print("\n[Chunked transcription — typed output]")
         chunked_transcript = process_file(audio_path)
 
-        # Full-file pipeline (full_transcript style)
         print("\n[Full-file transcription]")
         full_transcript = send_full_file_to_server(audio_path)
 
         compare_transcripts(chunked_transcript, full_transcript, reference)
+
+    # --- FLEURS samples ---
+    print(f"\n{'=' * 50}")
+    print(f"FLEURS evaluation — {SAMPLES_PER_LANGUAGE} sample(s) per language")
+
+    for lang_name, lang_code in FLEURS_LANGUAGES.items():
+        print(f"\n{'=' * 50}")
+        print(f"Language: {lang_name}")
+        dataset = load_fleurs(lang_code)
+
+        chunked_wers, full_wers = [], []
+
+        for idx, sample in enumerate(dataset):
+            if VERBOSE:
+                print(f"\n  Sample {idx + 1}/{SAMPLES_PER_LANGUAGE}")
+            chunked, full, reference = process_fleurs_sample(sample)
+            if VERBOSE:
+                compare_transcripts(chunked, full, reference)
+
+            if reference:
+                ref = reference.strip().lower()
+                if chunked:
+                    chunked_wers.append(wer(ref, chunked.lower()))
+                if full:
+                    full_wers.append(wer(ref, full.lower()))
+
+        print(f"\n  [{lang_name}] Average WER (chunked):   "
+              f"{sum(chunked_wers)/len(chunked_wers):.1%}" if chunked_wers else
+              f"\n  [{lang_name}] No chunked WER data")
+        print(f"  [{lang_name}] Average WER (full file): "
+              f"{sum(full_wers)/len(full_wers):.1%}" if full_wers else
+              f"  [{lang_name}] No full-file WER data")
 
 
 if __name__ == "__main__":
