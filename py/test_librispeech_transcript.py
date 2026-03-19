@@ -14,62 +14,59 @@ from datasets import load_dataset
 
 
 
-# Test harness for live_transcript_typed pipeline
-# Runs pre-recorded audio files through the same chunking/transcription logic
-# and computes WER against a reference transcript.
+# Test harness for live_transcript_typed pipeline using LibriSpeech (openslr/librispeech_asr)
+# Runs pre-recorded audio samples through the same chunking/transcription logic
+# and computes WER against reference transcripts.
 
 # ---------------- Configuration ---------------- #
 GPU_IP = config.GPU_IP
 SERVER_PORT = 8000
-MIN_CHUNK_DURATION = 2.0    # must match live_transcript_typed  # test different windows #1.5 default
-MAX_CHUNK_DURATION = 6.0    # force-cut ceiling (seconds); prevents unbounded buffers on continuous speech; 0 = disabled
-SILENCE_SEARCH_WINDOW = .5 #1.0 default
+MIN_CHUNK_DURATION = 2.0    # must match live_transcript_typed
+MAX_CHUNK_DURATION = 6.0    # force-cut ceiling (seconds); 0 = disabled
+SILENCE_SEARCH_WINDOW = .5
 SILENCE_WINDOW_SIZE = 0.05
 SAMPLE_RATE = 16000
 MIN_AUDIO_ENERGY = 0.01
 OVERLAP_DURATION = 0.5      # seconds of previous chunk to prepend for Whisper context
 OVERLAP_MATCH_WORDS = 6     # max words to try matching when stripping overlap
-VERBOSE = False             # True: show transcripts and WER; False: averages only
-VERBOSE_SHOW_NORMALIZED = False  # TRUE = additionally print normalized text in verbose mode
-SAMPLES_PER_LANGUAGE = 500
+VERBOSE = True             # True: show per-sample transcripts and WER; False: averages only
+VERBOSE_SHOW_NORMALIZED = False  # additionally print normalized text in verbose mode
 
+# ---- How much to transcribe ----
+# Set NUM_SAMPLES to limit by number of samples (0 = no limit).
+# Set MAX_TOTAL_DURATION to limit by total audio seconds (0.0 = no limit).
+# Both limits are applied together — whichever is reached first stops evaluation.
+NUM_SAMPLES = 10         # max samples to evaluate (0 = unlimited)
+MAX_TOTAL_DURATION = 0.0    # max cumulative audio seconds to evaluate (0.0 = unlimited)
+
+# ---- LibriSpeech dataset config ----
+# openslr/librispeech_asr is public — no token required.
+# subconfig: "clean" or "other"
+# split:     "test", "validation", "train.100", "train.360"
+LIBRISPEECH_SUBCONFIG = "clean"
+LIBRISPEECH_SPLIT = "test"
 
 WHISPER_HALLUCINATIONS = {'mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye'}
 
 AUDIO_DIR = "audio_chunks"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# Anchor paths relative to this script's location, not the working directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_LIBRISPEECH_TEMP_WAV = os.path.join(BASE_DIR, "librispeech_temp.wav")
 
+# Loaded lazily in main()
+_librispeech_dataset = None
 
-# ---- FLEURS language configs ----
-FLEURS_LANGUAGES = {
-    "English (en_us)":   "en_us",
-    "Spanish (es_419)":  "es_419",
-    # "Japanese (ja_jp)":  "ja_jp", #unicode glitching #cer
-    # "German (de_de)":    "de_de",
-    "French (fr_fr)":    "fr_fr",
-}
-
-# Loaded lazily in main() to avoid slow startup when not all languages are needed
-_fleurs_cache: dict = {}
-
-def load_fleurs(lang_code: str):
-    if lang_code not in _fleurs_cache:
-        _fleurs_cache[lang_code] = load_dataset(
-            "google/fleurs", lang_code,
-            split=f"train[:{SAMPLES_PER_LANGUAGE}]",
+def load_librispeech():
+    global _librispeech_dataset
+    if _librispeech_dataset is None:
+        _librispeech_dataset = load_dataset(
+            "openslr/librispeech_asr",
+            LIBRISPEECH_SUBCONFIG,
+            split=LIBRISPEECH_SPLIT,
             trust_remote_code=True,
         )
-    return _fleurs_cache[lang_code]
-
-
-# ---- Static files to test (optional) ----
-# Each entry: (path, "reference transcript or None")
-TEST_FILES = [
-    # (os.path.join(BASE_DIR, '..', 'audio', 'recording2.wav'), "I am testing for Dr. Li my language transcription project"),
-]
+    return _librispeech_dataset
 
 
 # ---------------- Globals ---------------- #
@@ -100,7 +97,6 @@ def normalize(text: str) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
-#whisper normalizer apply
 
 def strip_overlap(prev_words: list, new_words: list) -> list:
     """
@@ -175,14 +171,13 @@ def send_chunk_to_server(path, total_samples, results, index):
         print(f"\nError sending chunk: {e}")
         results[index] = None
     finally:
-        # Clean up the unique temp file now that the server has received it
         try:
             os.remove(path)
         except OSError:
             pass
 
 
-# ---------------- Send Full File (full_transcript comparison) ---------------- #
+# ---------------- Send Full File ---------------- #
 def send_full_file_to_server(path):
     """Send the entire audio file as one chunk — mirrors full_transcript.py behavior."""
     url = f"http://{GPU_IP}:{SERVER_PORT}/transcribe"
@@ -206,7 +201,7 @@ def process_file(audio_path):
     chunk_counter = 0
     full_transcript_words = []
     send_threads = []
-    chunk_results = {}  # index → (words, delay) or None; filled by threads
+    chunk_results = {}
 
     if VERBOSE:
         print(f"\nLoading: {audio_path}")
@@ -218,14 +213,13 @@ def process_file(audio_path):
     worker_thread = threading.Thread(target=typing_worker, daemon=False)
     worker_thread.start()
 
-    # Simulate the callback buffer by sliding through the audio in BLOCKSIZE steps
     BLOCKSIZE = 512
     buffer = []
     required_samples = int(SAMPLE_RATE * MIN_CHUNK_DURATION)
     search_samples = int(SAMPLE_RATE * SILENCE_SEARCH_WINDOW)
     max_samples = int(SAMPLE_RATE * MAX_CHUNK_DURATION) if MAX_CHUNK_DURATION > 0 else None
     overlap_samples = int(SAMPLE_RATE * OVERLAP_DURATION)
-    overlap_tail: np.ndarray = np.array([], dtype=np.float32)  # tail of last sent chunk
+    overlap_tail: np.ndarray = np.array([], dtype=np.float32)
 
     for start in range(0, len(audio), BLOCKSIZE):
         block = audio[start:start + BLOCKSIZE]
@@ -240,8 +234,6 @@ def process_file(audio_path):
 
         if natural_trigger or force_cut:
             audio_chunk = np.concatenate(buffer, axis=0)
-            # On a forced max-duration cut, search for silence near the max boundary
-            # rather than the minimum, so we still avoid cutting mid-word when possible.
             cut_target = required_samples if natural_trigger else max(required_samples, max_samples - search_samples // 2)
             cut_point = find_cut_point(audio_chunk, cut_target)
             send_audio = audio_chunk[:cut_point]
@@ -249,14 +241,13 @@ def process_file(audio_path):
             rms = float(np.sqrt(np.mean(send_audio.astype(np.float64) ** 2)))
             if rms >= MIN_AUDIO_ENERGY:
                 chunk_counter += 1
-                idx = chunk_counter  # stable index for ordering
+                idx = chunk_counter
 
-                # Prepend overlap tail from previous chunk so Whisper has context
                 audio_with_overlap = np.concatenate([overlap_tail, send_audio]) if len(overlap_tail) else send_audio
 
                 chunk_path = os.path.join(AUDIO_DIR, f"temp_{idx}.wav")
                 wav_write(chunk_path, SAMPLE_RATE, audio_with_overlap)
-                chunk_results[idx] = None  # reserve slot before thread starts
+                chunk_results[idx] = None
 
                 t = threading.Thread(
                     target=send_chunk_to_server,
@@ -266,12 +257,10 @@ def process_file(audio_path):
                 send_threads.append(t)
                 t.start()
 
-                # Save the tail of this chunk's audio for the next iteration
                 overlap_tail = send_audio[-overlap_samples:] if len(send_audio) > overlap_samples else send_audio.copy()
 
             buffer = [audio_chunk[cut_point:]]
 
-    # Handle any leftover audio that never hit the trigger threshold
     if buffer:
         remainder = np.concatenate(buffer, axis=0)
         rms = float(np.sqrt(np.mean(remainder.astype(np.float64) ** 2)))
@@ -294,7 +283,6 @@ def process_file(audio_path):
     for t in send_threads:
         t.join()
 
-    # Feed results to the typing queue in chunk order, stripping overlap words
     prev_words: list = []
     for idx in sorted(chunk_results.keys()):
         entry = chunk_results[idx]
@@ -302,7 +290,7 @@ def process_file(audio_path):
             continue
         words, delay = entry
         new_words = strip_overlap(prev_words, words)
-        prev_words = words[-OVERLAP_MATCH_WORDS:]  # keep tail for next chunk's dedup
+        prev_words = words[-OVERLAP_MATCH_WORDS:]
         if new_words:
             typing_queue.put((new_words, delay))
 
@@ -344,81 +332,101 @@ def compare_transcripts(chunked, full_file, reference=None):
     print("=" * 50)
 
 
-# ---------------- FLEURS Audio Helper ---------------- #
-_FLEURS_TEMP_WAV = os.path.join(BASE_DIR, "fleurs_temp.wav")
+# ---------------- LibriSpeech Audio Helper ---------------- #
+def get_reference_text(sample) -> str:
+    """Return the reference transcript from a LibriSpeech ESB sample."""
+    # ESB datasets use 'text' or 'norm_text' depending on the subconfig
+    for key in ("text", "norm_text", "transcription", "raw_transcription"):
+        if key in sample and sample[key]:
+            return sample[key]
+    return ""
 
-def process_fleurs_sample(sample) -> tuple[str, str, str]:
+
+def process_librispeech_sample(sample) -> tuple[str, str, str]:
     """
-    Write a FLEURS sample's audio to a temp WAV, run both pipelines,
+    Write a LibriSpeech sample's audio to a temp WAV, run both pipelines,
     and return (chunked_transcript, full_transcript, reference).
     """
     audio_array = np.array(sample["audio"]["array"], dtype=np.float32)
     sr = sample["audio"]["sampling_rate"]
-    reference = sample["raw_transcription"]
+    reference = get_reference_text(sample)
 
-    # Resample to SAMPLE_RATE if needed
     if sr != SAMPLE_RATE:
         audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=SAMPLE_RATE)
 
-    # Write int16 WAV for process_file (which uses librosa.load internally)
     audio_int16 = (audio_array * 32767).clip(-32768, 32767).astype(np.int16)
-    wav_write(_FLEURS_TEMP_WAV, SAMPLE_RATE, audio_int16)
+    wav_write(_LIBRISPEECH_TEMP_WAV, SAMPLE_RATE, audio_int16)
 
-    chunked = process_file(_FLEURS_TEMP_WAV)
-    full = send_full_file_to_server(_FLEURS_TEMP_WAV)
+    chunked = process_file(_LIBRISPEECH_TEMP_WAV)
+    full = send_full_file_to_server(_LIBRISPEECH_TEMP_WAV)
     return chunked, full, reference
+
+
+def sample_duration_seconds(sample) -> float:
+    """Return duration in seconds for a dataset sample."""
+    arr = sample["audio"]["array"]
+    sr = sample["audio"]["sampling_rate"]
+    return len(arr) / sr
 
 
 # ---------------- Main ---------------- #
 def main():
-    # --- Static test files ---
-    for audio_path, reference in TEST_FILES:
-        if not os.path.exists(audio_path):
-            print(f"File not found: {audio_path} — skipping.")
-            continue
+    dataset = load_librispeech()
 
-        print(f"\n{'=' * 50}")
-        print(f"Testing: {audio_path}")
+    limit_str = []
+    if NUM_SAMPLES > 0:
+        limit_str.append(f"{NUM_SAMPLES} samples")
+    if MAX_TOTAL_DURATION > 0:
+        limit_str.append(f"{MAX_TOTAL_DURATION:.0f}s total audio")
+    limit_desc = " / ".join(limit_str) if limit_str else "all samples"
 
-        print("\n[Chunked transcription — typed output]")
-        chunked_transcript = process_file(audio_path)
-
-        print("\n[Full-file transcription]")
-        full_transcript = send_full_file_to_server(audio_path)
-
-        compare_transcripts(chunked_transcript, full_transcript, reference)
-
-    # --- FLEURS samples ---
     print(f"\n{'=' * 50}")
-    print(f"FLEURS evaluation — {SAMPLES_PER_LANGUAGE} sample(s) per language")
+    print(f"LibriSpeech evaluation — {limit_desc}")
+    print(f"Dataset: openslr/librispeech_asr / {LIBRISPEECH_SUBCONFIG} / split={LIBRISPEECH_SPLIT}")
+    print(f"{'=' * 50}")
 
-    for lang_name, lang_code in FLEURS_LANGUAGES.items():
-        print(f"\n{'=' * 50}")
-        print(f"Language: {lang_name}")
-        dataset = load_fleurs(lang_code)
+    chunked_wers, full_wers = [], []
+    total_duration = 0.0
 
-        chunked_wers, full_wers = [], []
+    for idx, sample in enumerate(dataset):
+        # Apply limits
+        if NUM_SAMPLES > 0 and idx >= NUM_SAMPLES:
+            print(f"\nReached sample limit ({NUM_SAMPLES}). Stopping.")
+            break
 
-        for idx, sample in enumerate(dataset):
-            if VERBOSE:
-                print(f"\n  Sample {idx + 1}/{SAMPLES_PER_LANGUAGE}")
-            chunked, full, reference = process_fleurs_sample(sample)
-            if VERBOSE:
-                compare_transcripts(chunked, full, reference)
+        dur = sample_duration_seconds(sample)
+        if MAX_TOTAL_DURATION > 0 and total_duration + dur > MAX_TOTAL_DURATION:
+            print(f"\nReached duration limit ({MAX_TOTAL_DURATION:.0f}s). Stopping.")
+            break
 
-            if reference:
-                ref = normalize(reference)
-                if chunked:
-                    chunked_wers.append(wer(ref, normalize(chunked)))
-                if full:
-                    full_wers.append(wer(ref, normalize(full)))
+        total_duration += dur
 
-        print(f"\n  [{lang_name}] Average WER (chunked):   "
-              f"{sum(chunked_wers)/len(chunked_wers):.1%}" if chunked_wers else
-              f"\n  [{lang_name}] No chunked WER data")
-        print(f"  [{lang_name}] Average WER (full file): "
-              f"{sum(full_wers)/len(full_wers):.1%}" if full_wers else
-              f"  [{lang_name}] No full-file WER data")
+        if VERBOSE:
+            print(f"\n  Sample {idx + 1}  [{dur:.1f}s]  cumulative: {total_duration:.1f}s")
+
+        chunked, full, reference = process_librispeech_sample(sample)
+
+        if VERBOSE:
+            compare_transcripts(chunked, full, reference)
+
+        if reference:
+            ref = normalize(reference)
+            if chunked:
+                chunked_wers.append(wer(ref, normalize(chunked)))
+            if full:
+                full_wers.append(wer(ref, normalize(full)))
+
+    print(f"\n{'=' * 50}")
+    print(f"Evaluated {len(chunked_wers)} sample(s) — {total_duration:.1f}s total audio")
+    print(
+        f"Average WER (chunked):   {sum(chunked_wers)/len(chunked_wers):.1%}"
+        if chunked_wers else "Average WER (chunked):   N/A"
+    )
+    print(
+        f"Average WER (full file): {sum(full_wers)/len(full_wers):.1%}"
+        if full_wers else "Average WER (full file): N/A"
+    )
+    print("=" * 50)
 
 
 if __name__ == "__main__":
