@@ -355,6 +355,208 @@ body {
     transform: translateY(-2px);
 }
 
+/* ── New Folder button ── */
+.new-folder-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    background: white;
+    color: var(--text-color);
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: 'Merriweather', serif;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    letter-spacing: 0.02em;
+}
+
+.new-folder-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+/* ── Page sections ── */
+#recent-section,
+#folders-section {
+    margin-bottom: 2.5rem;
+    border-radius: 10px;
+    transition: outline 0.15s, background 0.15s;
+}
+
+#recent-section.drop-target {
+    outline: 2px dashed var(--accent-color);
+    background: rgba(210, 31, 60, 0.03);
+}
+
+/* ── Folder grid ── */
+.folder-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.empty-folders-state {
+    display: none;
+    color: var(--gray-text);
+    font-size: 0.9rem;
+    padding: 1.25rem 0 0.5rem;
+}
+
+/* ── Folder card ── */
+.folder-card {
+    background: white;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.folder-card.drag-over {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(210, 31, 60, 0.15);
+}
+
+.folder-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    cursor: pointer;
+    user-select: none;
+    background: #FAFAFA;
+    border-bottom: 1px solid transparent;
+    transition: background 0.15s;
+}
+
+.folder-card.expanded .folder-header {
+    border-bottom-color: var(--border-color);
+    background: #F5F5F5;
+}
+
+.folder-header:hover {
+    background: #F0F0F0;
+}
+
+.folder-icon {
+    width: 22px;
+    height: 22px;
+    color: #E8A020;
+    flex-shrink: 0;
+}
+
+.folder-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-color);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--border-color);
+    color: var(--gray-text);
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.folder-actions {
+    display: flex;
+    gap: 0.3rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.folder-header:hover .folder-actions {
+    opacity: 1;
+}
+
+.folder-rename-btn,
+.folder-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.folder-rename-btn:hover {
+    background: #E5E7EB;
+    color: var(--text-color);
+}
+
+.folder-delete-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.folder-chevron {
+    flex-shrink: 0;
+    color: var(--gray-text);
+    transition: transform 0.2s;
+}
+
+.folder-card.expanded .folder-chevron {
+    transform: rotate(180deg);
+}
+
+/* ── Folder body (expanded journals) ── */
+.folder-body {
+    padding: 0;
+}
+
+.folder-card.expanded .folder-body {
+    padding: 1.25rem;
+}
+
+.folder-journal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.folder-empty-msg {
+    color: var(--gray-text);
+    font-size: 0.88rem;
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+/* ── Rename input ── */
+.folder-rename-input {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: 'Merriweather', serif;
+    color: var(--text-color);
+    border: 1.5px solid var(--accent-color);
+    border-radius: 5px;
+    padding: 0.15rem 0.4rem;
+    outline: none;
+    background: white;
+    min-width: 0;
+}
+
+/* ── Drag states ── */
+.journal-card.dragging {
+    opacity: 0.4;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
     .main-container {

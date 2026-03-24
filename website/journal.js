@@ -333,7 +333,12 @@ function closeLanguageDropdowns() {
     languageRightDropdown.style.display = 'none';
 }
 
+function isCurrentPageLocked() {
+    return !!(journalState.pages[journalState.currentPageIndex] || {}).locked;
+}
+
 function selectLanguage(side, code) {
+    if (isCurrentPageLocked()) { closeLanguageDropdowns(); return; }
     if (side === 'left'  && code === journalState.rightLanguage) return;
     if (side === 'right' && code === journalState.leftLanguage)  return;
 
@@ -350,6 +355,7 @@ function selectLanguage(side, code) {
 }
 
 function swapLanguages() {
+    if (isCurrentPageLocked()) return;
     [journalState.leftLanguage, journalState.rightLanguage] =
         [journalState.rightLanguage, journalState.leftLanguage];
     updateLanguageButtonLabels();
