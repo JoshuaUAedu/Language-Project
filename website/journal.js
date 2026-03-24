@@ -56,17 +56,22 @@ const streamState = {
     sampleBuffer: [],
     totalSamples: 0,
     isStreaming: false,
+    overlapTail: null,   // Float32Array — tail of last sent chunk prepended for Whisper context
+    prevWords: [],       // last N words sent, used for overlap dedup
     _typingTimeouts: [],
     _shrinkTimer: null,
 };
 
 const SERVER_URL = `http://${GPU_IP}:8000`;
 
-// Live bar chunking parameters — mirrors live_transcript_typed.py
-const MIN_CHUNK_SEC       = 1.5;
-const SILENCE_SEARCH_SEC  = 1.0;
+// Live bar chunking parameters — mirrors test_librispeech_transcript.py
+const MIN_CHUNK_SEC       = 2.0;
+const MAX_CHUNK_SEC       = 6.0;   // force-cut ceiling — prevents unbounded buffers
+const SILENCE_SEARCH_SEC  = 0.5;
 const SILENCE_WINDOW_SEC  = 0.05;
 const MIN_AUDIO_ENERGY    = 0.01;
+const OVERLAP_SEC         = 0.5;   // seconds of previous chunk to prepend for Whisper context
+const OVERLAP_MATCH_WORDS = 6;     // max words to try matching when stripping overlap
 const WHISPER_HALLUCINATIONS = new Set(
     ['mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye']
 );
@@ -84,6 +89,7 @@ const transcribeState = {
     totalSamples: 0,
     _maxTimer: null,
     _typingTimeouts: [],
+    pendingChunks: 0,  // tracks in-flight server requests
 };
 
 // DOM Elements
@@ -463,15 +469,20 @@ async function startAudioStreaming() {
         streamState.isStreaming     = true;
 
         const minSamples    = Math.floor(sampleRate * MIN_CHUNK_SEC);
+        const maxSamples    = Math.floor(sampleRate * MAX_CHUNK_SEC);
         const searchSamples = Math.floor(sampleRate * SILENCE_SEARCH_SEC);
+        streamState.overlapTail = null;
+        streamState.prevWords   = [];
 
         processor.onaudioprocess = e => {
             if (!streamState.isStreaming) return;
             const input = e.inputBuffer.getChannelData(0);
             streamState.sampleBuffer.push(new Float32Array(input));
             streamState.totalSamples += input.length;
-            if (streamState.totalSamples >= minSamples + searchSamples) {
-                processBuffer(sampleRate, minSamples);
+            const naturalTrigger = streamState.totalSamples >= minSamples + searchSamples;
+            const forceCut       = streamState.totalSamples >= maxSamples;
+            if (naturalTrigger || forceCut) {
+                processBuffer(sampleRate, minSamples, maxSamples, forceCut);
             }
         };
 
@@ -498,16 +509,22 @@ function stopAudioStreaming() {
     if (streamState.mediaStream)     { streamState.mediaStream.getTracks().forEach(t => t.stop()); streamState.mediaStream = null; }
     streamState.sampleBuffer = [];
     streamState.totalSamples = 0;
+    streamState.overlapTail  = null;
+    streamState.prevWords    = [];
 }
 
-// ── Chunking (mirrors live_transcript_typed.py logic) ───────────────────────
+// ── Chunking (mirrors test_librispeech_transcript.py logic) ──────────────────
 
-function processBuffer(sampleRate, minSamples) {
+function processBuffer(sampleRate, minSamples, maxSamples, forceCut) {
     const flat = new Float32Array(streamState.totalSamples);
     let offset = 0;
     for (const chunk of streamState.sampleBuffer) { flat.set(chunk, offset); offset += chunk.length; }
 
-    const cutPoint  = findCutPoint(flat, minSamples, sampleRate);
+    // On a forced max-duration cut, search near the max boundary rather than min
+    const cutTarget = forceCut
+        ? Math.max(minSamples, maxSamples - Math.floor(sampleRate * SILENCE_SEARCH_SEC / 2))
+        : minSamples;
+    const cutPoint  = findCutPoint(flat, cutTarget, sampleRate);
     const sendAudio = flat.slice(0, cutPoint);
     const remaining = flat.slice(cutPoint);
 
@@ -516,8 +533,26 @@ function processBuffer(sampleRate, minSamples) {
 
     if (computeRMS(sendAudio) < MIN_AUDIO_ENERGY) return;
 
-    const chunkSeconds = cutPoint / sampleRate;
-    sendAudioChunk(encodeWAV(sendAudio, sampleRate), chunkSeconds);
+    // Prepend overlap tail from previous chunk so Whisper has context
+    const overlapSamples = Math.floor(sampleRate * OVERLAP_SEC);
+    const audioWithOverlap = streamState.overlapTail
+        ? concatFloat32(streamState.overlapTail, sendAudio)
+        : sendAudio;
+
+    // Save the tail of this chunk for the next iteration
+    streamState.overlapTail = sendAudio.length > overlapSamples
+        ? sendAudio.slice(sendAudio.length - overlapSamples)
+        : sendAudio.slice();
+
+    const chunkSeconds = audioWithOverlap.length / sampleRate;
+    sendAudioChunk(encodeWAV(audioWithOverlap, sampleRate), chunkSeconds);
+}
+
+function concatFloat32(a, b) {
+    const out = new Float32Array(a.length + b.length);
+    out.set(a, 0);
+    out.set(b, a.length);
+    return out;
 }
 
 function findCutPoint(audio, targetSample, sampleRate) {
@@ -582,14 +617,33 @@ async function sendAudioChunk(blob, chunkSeconds) {
     }
 }
 
+// ── Overlap deduplication (mirrors strip_overlap in test_librispeech_transcript.py) ──
+
+function stripOverlap(prevWords, newWords) {
+    const canonical = ws => ws.map(w => w.toLowerCase().replace(/[.,!?;:]/g, ''));
+    for (let len = Math.min(OVERLAP_MATCH_WORDS, prevWords.length, newWords.length); len > 0; len--) {
+        if (canonical(prevWords.slice(-len)).join(' ') === canonical(newWords.slice(0, len)).join(' ')) {
+            return newWords.slice(len);
+        }
+    }
+    return newWords;
+}
+
 // ── Typing animation (mirrors typing_worker in live_transcript_typed.py) ────
 
 function showTranscriptionChunk(text, chunkSeconds) {
-    const words = text.split(/\s+/).filter(Boolean);
+    let words = text.split(/\s+/).filter(Boolean);
     if (!words.length) return;
 
     const cleaned = words.map(w => w.replace(/[.,!?]/g, '').toLowerCase());
     if (words.length <= 3 && cleaned.every(w => WHISPER_HALLUCINATIONS.has(w))) return;
+
+    // Strip words already shown from the prepended overlap region
+    words = stripOverlap(streamState.prevWords, words);
+    if (!words.length) return;
+
+    // Keep the tail of these words for the next chunk's dedup
+    streamState.prevWords = words.slice(-OVERLAP_MATCH_WORDS);
 
     streamState._typingTimeouts.forEach(id => clearTimeout(id));
     streamState._typingTimeouts = [];
@@ -619,6 +673,7 @@ function showTranscriptionChunk(text, chunkSeconds) {
 // ── Journal Transcription (Transcribe button) ────────────────────────────────
 
 function toggleTranscription() {
+    if (transcribeBtn.disabled) return;
     if (transcribeState.isTranscribing) {
         stopTranscription();
     } else {
@@ -686,18 +741,40 @@ function stopTranscription() {
     transcribeState.isTranscribing = false;
     clearTimeout(transcribeState._maxTimer);
 
-    transcribeState._typingTimeouts.forEach(id => clearTimeout(id));
-    transcribeState._typingTimeouts = [];
+    // Flush any remaining buffered audio as a final chunk before tearing down
+    if (transcribeState.sampleBuffer.length && transcribeState.totalSamples > 0) {
+        const sampleRate = transcribeState.audioContext
+            ? transcribeState.audioContext.sampleRate
+            : 44100;
+        const flat = new Float32Array(transcribeState.totalSamples);
+        let off = 0;
+        for (const c of transcribeState.sampleBuffer) { flat.set(c, off); off += c.length; }
+        if (computeRMS(flat) >= MIN_AUDIO_ENERGY) {
+            const chunkSeconds = flat.length / sampleRate;
+            sendTranscribeChunk(encodeWAV(flat, sampleRate), chunkSeconds);
+        }
+    }
 
+    // Stop hardware immediately — let in-flight requests and typing animations finish
     if (transcribeState.scriptProcessor) { transcribeState.scriptProcessor.disconnect(); transcribeState.scriptProcessor = null; }
     if (transcribeState.audioContext)    { transcribeState.audioContext.close();         transcribeState.audioContext    = null; }
     transcribeState.sampleBuffer = [];
     transcribeState.totalSamples = 0;
 
-    transcribeBtn.classList.remove('transcribing');
-    transcribeBtn.textContent = 'Transcribe';
+    // Show processing state — button resets via checkTranscriptionDone() when all chunks are done
+    transcribeBtn.classList.replace('transcribing', 'processing');
+    transcribeBtn.textContent = 'Processing...';
+    transcribeBtn.disabled    = true;
     transcribeIndicator.classList.remove('active');
 
+    checkTranscriptionDone();
+}
+
+function checkTranscriptionDone() {
+    if (transcribeState.isTranscribing || transcribeState.pendingChunks > 0) return;
+    transcribeBtn.classList.remove('processing');
+    transcribeBtn.textContent = 'Transcribe';
+    transcribeBtn.disabled    = false;
     saveCurrentPageToState();
 }
 
@@ -718,6 +795,7 @@ function processTranscribeBuffer(sampleRate, minSamples) {
 }
 
 async function sendTranscribeChunk(blob, chunkSeconds) {
+    transcribeState.pendingChunks++;
     try {
         const formData = new FormData();
         formData.append('file', blob, 'chunk.wav');
@@ -735,6 +813,9 @@ async function sendTranscribeChunk(blob, chunkSeconds) {
         typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds, data.confidence ?? null);
     } catch (err) {
         console.warn('Transcribe chunk failed:', err);
+    } finally {
+        transcribeState.pendingChunks--;
+        checkTranscriptionDone();
     }
 }
 
