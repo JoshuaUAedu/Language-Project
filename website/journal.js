@@ -39,7 +39,7 @@ const streamState = {
     _shrinkTimer: null,
 };
 
-const SERVER_URL = 'http://localhost:8000';
+const SERVER_URL = `http://${GPU_IP}:8000`;
 
 // Live bar chunking parameters — mirrors live_transcript_typed.py
 const MIN_CHUNK_SEC       = 1.5;
@@ -730,19 +730,7 @@ function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds, con
 // ── Enter-to-translate (left page typing) ────────────────────────────────────
 
 function getCurrentLineText() {
-    const sel = window.getSelection();
-    if (!sel.rangeCount) return '';
-
-    let node = sel.getRangeAt(0).startContainer;
-    // Walk up to find the direct child of englishTextEl
-    while (node && node.parentNode !== englishTextEl) {
-        node = node.parentNode;
-    }
-    // If text lives directly in the container (first line, no child divs yet)
-    if (!node || node === englishTextEl) {
-        return englishTextEl.textContent.trim();
-    }
-    return node.textContent.trim();
+    return englishTextEl.textContent.trim();
 }
 
 function handleLeftPageEnter(e) {

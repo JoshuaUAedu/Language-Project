@@ -13,6 +13,7 @@ audio_chunks/
 env/temp.wav
 temp.wav
 config.py
+website/config.js
 temp.webm
 py/fleurs_temp.wav
 librispeech_temp.wav
