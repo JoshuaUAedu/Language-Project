@@ -45,7 +45,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ---- FLEURS language configs ----
 FLEURS_LANGUAGES = {
-    "English (en_us)":   "en_us",
+    # "English (en_us)":   "en_us",
     "Spanish (es_419)":  "es_419",
     # "Japanese (ja_jp)":  "ja_jp", #unicode glitching #cer
     # "German (de_de)":    "de_de",

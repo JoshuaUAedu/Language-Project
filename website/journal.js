@@ -13,7 +13,7 @@ const MAX_JOURNAL_TITLE_LENGTH = 50;
 
 // Journal state
 const journalState = {
-    pages: [{ leftText: '', rightText: '' }],
+    pages: [{ leftText: '', rightText: '', locked: false }],
     currentPageIndex: 0,
     currentJournalId: null,
     isMicMuted: false,
@@ -139,14 +139,10 @@ function applyConfidenceToDiv(div, score) {
     label.style.background = color;
 }
 
-// Flag to suppress left-page observer during programmatic renders
-let suppressLeftObserver = false;
-
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     buildLanguageDropdowns();
     initializeEventListeners();
-    setupLeftPageObserver();
     loadJournalEntries();
     checkForExistingJournal();
     renderCurrentPage();
@@ -210,18 +206,18 @@ function initializeEventListeners() {
 // ── Page Management ───────────────────────────────────────────────────────────
 
 function saveCurrentPageToState() {
-    journalState.pages[journalState.currentPageIndex] = {
-        leftText: englishTextEl.innerHTML,
-        rightText: spanishTextEl.innerHTML,
-    };
+    const page = journalState.pages[journalState.currentPageIndex];
+    page.leftText = englishTextEl.innerHTML;
+    page.rightText = spanishTextEl.innerHTML;
 }
 
 function renderCurrentPage() {
-    suppressLeftObserver = true;
     const page = journalState.pages[journalState.currentPageIndex];
     englishTextEl.innerHTML = page.leftText || '';
     spanishTextEl.innerHTML = page.rightText || '';
-    suppressLeftObserver = false;
+    // Apply locked state — locked pages are read-only on both sides
+    const isLocked = page.locked || false;
+    englishTextEl.contentEditable = isLocked ? 'false' : 'true';
     // Re-apply confidence badge colors (inline style lost on innerHTML reset)
     Array.from(spanishTextEl.children).forEach(div => {
         const raw = div.dataset.confidence;
@@ -241,11 +237,16 @@ function updatePageIndicator() {
     prevPageBtn.disabled    = journalState.currentPageIndex === 0;
     nextPageBtn.disabled    = false;
     nextPageBtn.innerHTML   = isLastPage ? '+ New Page' : 'Next &#8594;';
-    deletePageBtn.disabled  = total === 1;
+    deletePageBtn.disabled  = false;
 }
 
 function deleteCurrentPage() {
-    if (journalState.pages.length === 1) return;
+    if (journalState.pages.length === 1) {
+        // Only page — reset it instead of blocking
+        journalState.pages[0] = { leftText: '', rightText: '', locked: false };
+        renderCurrentPage();
+        return;
+    }
     journalState.pages.splice(journalState.currentPageIndex, 1);
     journalState.currentPageIndex = Math.min(journalState.currentPageIndex, journalState.pages.length - 1);
     renderCurrentPage();
@@ -260,40 +261,9 @@ function goToPage(index) {
 
 function addNewPage() {
     saveCurrentPageToState();
-    journalState.pages.push({ leftText: '', rightText: '' });
+    journalState.pages.push({ leftText: '', rightText: '', locked: false });
     journalState.currentPageIndex = journalState.pages.length - 1;
     renderCurrentPage();
-}
-
-// ── Left Page Deletion Mirror ─────────────────────────────────────────────────
-
-function setupLeftPageObserver() {
-    const observer = new MutationObserver((mutations) => {
-        if (suppressLeftObserver) return;
-        for (const mutation of mutations) {
-            if (mutation.type !== 'childList') continue;
-            const removedElements = Array.from(mutation.removedNodes).filter(n => n.nodeType === Node.ELEMENT_NODE);
-            if (removedElements.length === 0) continue;
-
-            // previousSibling tells us what came before the removed block in the DOM
-            let startIndex = 0;
-            const prevSib = mutation.previousSibling;
-            if (prevSib && prevSib.nodeType === Node.ELEMENT_NODE) {
-                const leftChildren = Array.from(englishTextEl.children);
-                startIndex = leftChildren.indexOf(prevSib) + 1;
-            }
-
-            // Remove the corresponding right-page children at the same indices
-            for (let i = 0; i < removedElements.length; i++) {
-                if (startIndex < spanishTextEl.children.length) {
-                    spanishTextEl.removeChild(spanishTextEl.children[startIndex]);
-                }
-            }
-            // Persist the updated right page content
-            journalState.pages[journalState.currentPageIndex].rightText = spanishTextEl.innerHTML;
-        }
-    });
-    observer.observe(englishTextEl, { childList: true });
 }
 
 // ── Language Dropdowns ────────────────────────────────────────────────────────
@@ -779,16 +749,27 @@ function handleLeftPageEnter(e) {
     if (e.key !== 'Enter') return;
 
     const lineText = getCurrentLineText();
-    if (!lineText) return; // blank line — nothing to translate
+    if (!lineText) {
+        e.preventDefault(); // don't insert a blank line
+        return;
+    }
 
-    // Defer until after the browser inserts the new line div on the left page
-    setTimeout(() => {
-        const rightDiv = document.createElement('div');
-        rightDiv.classList.add('translation-pending');
-        rightDiv.textContent = '…';
-        spanishTextEl.appendChild(rightDiv);
-        translateLine(lineText, rightDiv);
-    }, 0);
+    // Prevent the default newline — we lock the page instead
+    e.preventDefault();
+
+    // Lock both pages immediately
+    const page = journalState.pages[journalState.currentPageIndex];
+    page.locked = true;
+    englishTextEl.contentEditable = 'false';
+
+    // Trigger translation on the right page
+    const rightDiv = document.createElement('div');
+    rightDiv.classList.add('translation-pending');
+    rightDiv.textContent = '…';
+    spanishTextEl.appendChild(rightDiv);
+    translateLine(lineText, rightDiv);
+
+    saveCurrentPageToState();
 }
 
 async function translateLine(text, targetDiv) {
