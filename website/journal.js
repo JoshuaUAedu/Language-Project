@@ -11,6 +11,27 @@ const languageNames = {
 
 const MAX_JOURNAL_TITLE_LENGTH = 50;
 
+// Placeholder text per language for each page side
+const placeholderSource = {
+    en: 'Waiting for transcription... Type or dictate here.',
+    es: 'Esperando transcripción... Escriba o dicte aquí.',
+    fr: 'En attente de transcription... Tapez ou dictez ici.',
+    de: 'Warten auf Transkription... Tippen oder diktieren Sie hier.',
+    zh: '等待转录... 在此输入或口述。',
+    ja: '文字起こしを待っています... ここに入力または口述してください。',
+    ko: '전사를 기다리는 중... 여기에 입력하거나 받아쓰세요.',
+};
+
+const placeholderTarget = {
+    en: 'Translation pending...',
+    es: 'Traducción pendiente...',
+    fr: 'Traduction en attente...',
+    de: 'Übersetzung ausstehend...',
+    zh: '翻译待处理...',
+    ja: '翻訳待ち...',
+    ko: '번역 대기 중...',
+};
+
 // Journal state
 const journalState = {
     pages: [{ leftText: '', rightText: '', locked: false }],
@@ -88,6 +109,7 @@ const languageLeftDropdown  = document.getElementById('language-left-dropdown');
 const languageRightBtn      = document.getElementById('language-right-btn');
 const languageRightLabel    = document.getElementById('language-right-label');
 const languageRightDropdown = document.getElementById('language-right-dropdown');
+const swapLangBtn           = document.getElementById('swap-lang-btn');
 const newJournalBtn         = document.getElementById('new-journal-btn');
 const studyBtn              = document.getElementById('study-btn');
 const transcribeBtn         = document.getElementById('transcribe-btn');
@@ -143,6 +165,7 @@ function applyConfidenceToDiv(div, score) {
 document.addEventListener('DOMContentLoaded', () => {
     buildLanguageDropdowns();
     initializeEventListeners();
+    updatePlaceholders();
     loadJournalEntries();
     checkForExistingJournal();
     renderCurrentPage();
@@ -177,6 +200,7 @@ function initializeEventListeners() {
     profileBtn.addEventListener('click', () => { alert('Profile settings coming soon!'); });
     settingsBtn.addEventListener('click', () => { alert('Settings coming soon!'); });
 
+    swapLangBtn.addEventListener('click', swapLanguages);
     newJournalBtn.addEventListener('click', startNewJournal);
 
     studyBtn.addEventListener('click', toggleStudyMode);
@@ -321,12 +345,26 @@ function selectLanguage(side, code) {
         languageRightLabel.textContent = languageNames[code];
     }
     updateLanguageOptionSelected();
+    updatePlaceholders();
     closeLanguageDropdowns();
+}
+
+function swapLanguages() {
+    [journalState.leftLanguage, journalState.rightLanguage] =
+        [journalState.rightLanguage, journalState.leftLanguage];
+    updateLanguageButtonLabels();
+    updateLanguageOptionSelected();
+    updatePlaceholders();
 }
 
 function updateLanguageButtonLabels() {
     languageLeftLabel.textContent  = languageNames[journalState.leftLanguage];
     languageRightLabel.textContent = languageNames[journalState.rightLanguage];
+}
+
+function updatePlaceholders() {
+    englishTextEl.dataset.placeholder = placeholderSource[journalState.leftLanguage]  || placeholderSource.en;
+    spanishTextEl.dataset.placeholder = placeholderTarget[journalState.rightLanguage] || placeholderTarget.en;
 }
 
 function updateLanguageOptionSelected() {
@@ -1035,7 +1073,7 @@ function updateScoreDisplay() {
 function startNewJournal() {
     journalState.currentJournalId  = null;
     journalTitleEl.textContent      = 'Journal';
-    journalState.pages              = [{ leftText: '', rightText: '' }];
+    journalState.pages              = [{ leftText: '', rightText: '', locked: false }];
     journalState.currentPageIndex   = 0;
     journalState.missedCount        = 0;
     journalState.correctCount       = 0;
@@ -1055,9 +1093,14 @@ function openJournal(journalId) {
 
     // Support both new pages format and legacy englishText/spanishText
     if (entry.pages && entry.pages.length) {
-        journalState.pages = entry.pages;
+        // Normalise pages saved before the lock feature existed
+        journalState.pages = entry.pages.map(p => ({
+            leftText:  p.leftText  || '',
+            rightText: p.rightText || '',
+            locked:    p.leftText ? true : (p.locked || false),
+        }));
     } else {
-        journalState.pages = [{ leftText: entry.englishText || '', rightText: entry.spanishText || '' }];
+        journalState.pages = [{ leftText: entry.englishText || '', rightText: entry.spanishText || '', locked: !!(entry.englishText) }];
     }
     journalState.currentPageIndex  = 0;
     journalState.currentJournalId  = entry.id;
@@ -1077,6 +1120,7 @@ function openJournal(journalId) {
         languageRightLabel.textContent = languageNames[journalState.rightLanguage];
     }
     updateLanguageOptionSelected();
+    updatePlaceholders();
 
     journalState.missedCount  = entry.missedCount  || 0;
     journalState.correctCount = entry.correctCount || 0;
