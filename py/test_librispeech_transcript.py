@@ -22,29 +22,40 @@ from datasets import load_dataset
 GPU_IP = config.GPU_IP
 SERVER_PORT = 8000
 MIN_CHUNK_DURATION = 2.0    # must match live_transcript_typed
-MAX_CHUNK_DURATION = 6.0    # force-cut ceiling (seconds); 0 = disabled
-SILENCE_SEARCH_WINDOW = .5
-SILENCE_WINDOW_SIZE = 0.05
+MAX_CHUNK_DURATION = 6.0    # force-cut ceiling (seconds); 0 = disabled 6
+SILENCE_SEARCH_WINDOW = .5  #.5
+SILENCE_WINDOW_SIZE = 0.05   #.05
 SAMPLE_RATE = 16000
 MIN_AUDIO_ENERGY = 0.01
-OVERLAP_DURATION = 0.5      # seconds of previous chunk to prepend for Whisper context
-OVERLAP_MATCH_WORDS = 6     # max words to try matching when stripping overlap
-VERBOSE = False             # True: show per-sample transcripts and WER; False: averages only
+OVERLAP_DURATION = 1.5      # seconds of previous chunk to prepend for Whisper context .5
+OVERLAP_MATCH_WORDS = 10   # max words to try matching when stripping overlap
+VERBOSE = True             # True: show per-sample transcripts and WER; False: averages only
 VERBOSE_SHOW_NORMALIZED = False  # additionally print normalized text in verbose mode
 
 # ---- How much to transcribe ----
 # Set NUM_SAMPLES to limit by number of samples (0 = no limit).
 # Set MAX_TOTAL_DURATION to limit by total audio seconds (0.0 = no limit).
 # Both limits are applied together — whichever is reached first stops evaluation.
-NUM_SAMPLES = 500         # max samples to evaluate (0 = unlimited)
+NUM_SAMPLES = 500       # max samples to evaluate (0 = unlimited)
 MAX_TOTAL_DURATION = 0.0    # max cumulative audio seconds to evaluate (0.0 = unlimited)
 
 # ---- LibriSpeech dataset config ----
-# openslr/librispeech_asr is public — no token required.
-# subconfig: "clean" or "other"
-# split:     "test", "validation", "train.100", "train.360"
-LIBRISPEECH_SUBCONFIG = "clean"
-LIBRISPEECH_SPLIT = "test"
+# Switch between "english" and "spanish" modes:
+#   "english" → openslr/librispeech_asr   (subconfig: "clean" or "other"; split: "test", "validation", "train.100", "train.360")
+#   "spanish" → facebook/multilingual_librispeech (subconfig: "spanish"; split: "train[:500]", etc.)
+DATASET_MODE = "spanish"   # <-- change to "spanish" to switch datasets
+
+if DATASET_MODE == "spanish":
+    LIBRISPEECH_MAIN = "facebook/multilingual_librispeech"
+    LIBRISPEECH_SUBCONFIG = "spanish"
+    LIBRISPEECH_SPLIT = "train[:500]"
+    REFERENCE_KEY = "transcript"
+else:  # english
+    LIBRISPEECH_MAIN = "openslr/librispeech_asr"
+    LIBRISPEECH_SUBCONFIG = "clean"
+    LIBRISPEECH_SPLIT = "test"
+    REFERENCE_KEY = "text"
+
 
 WHISPER_HALLUCINATIONS = {'mbc', 'you', 'bye', 'thank', 'thanks', 'thank you', 'goodbye'}
 
@@ -61,7 +72,7 @@ def load_librispeech():
     global _librispeech_dataset
     if _librispeech_dataset is None:
         _librispeech_dataset = load_dataset(
-            "openslr/librispeech_asr",
+            LIBRISPEECH_MAIN,
             LIBRISPEECH_SUBCONFIG,
             split=LIBRISPEECH_SPLIT,
             trust_remote_code=True,
@@ -100,15 +111,30 @@ def normalize(text: str) -> str:
 
 def strip_overlap(prev_words: list, new_words: list) -> list:
     """
-    Remove words at the start of new_words that were already output at the end
-    of prev_words (the overlap region).  Tries progressively shorter matches so
-    a single mis-transcribed word in the overlap doesn't prevent dedup entirely.
+    Remove words at the start of new_words that duplicate the end of prev_words
+    (the overlap region).  Scans all candidate cut lengths and picks the longest
+    one whose word-pair match rate meets a 75% threshold, so a few mis-transcribed
+    words in the overlap don't prevent dedup entirely.
     """
+    if not prev_words or not new_words or OVERLAP_MATCH_WORDS == 0:
+        return new_words
+
     canonical = lambda ws: [w.lower().strip('.,!?;:') for w in ws]
-    for match_len in range(min(OVERLAP_MATCH_WORDS, len(prev_words), len(new_words)), 0, -1):
-        if canonical(prev_words[-match_len:]) == canonical(new_words[:match_len]):
-            return new_words[match_len:]
-    return new_words
+    prev_c = canonical(prev_words)
+    new_c  = canonical(new_words)
+
+    max_try = min(OVERLAP_MATCH_WORDS, len(prev_c), len(new_c))
+    best_cut, best_score = 0, 0.0
+
+    for match_len in range(1, max_try + 1):
+        matches = sum(a == b for a, b in zip(prev_c[-match_len:], new_c[:match_len]))
+        score = matches / match_len
+        # Prefer longer matches; only upgrade if score is at least as good
+        if score >= 0.75 and score >= best_score:
+            best_score = score
+            best_cut = match_len
+
+    return new_words[best_cut:] if best_cut > 0 else new_words
 
 
 def sanitize(word):
@@ -334,9 +360,8 @@ def compare_transcripts(chunked, full_file, reference=None):
 
 # ---------------- LibriSpeech Audio Helper ---------------- #
 def get_reference_text(sample) -> str:
-    """Return the reference transcript from a LibriSpeech ESB sample."""
-    # ESB datasets use 'text' or 'norm_text' depending on the subconfig
-    for key in ("text", "norm_text", "transcription", "raw_transcription"):
+    """Return the reference transcript from a dataset sample."""
+    for key in (REFERENCE_KEY, "text", "norm_text", "transcription", "raw_transcription"):
         if key in sample and sample[key]:
             return sample[key]
     return ""
@@ -382,13 +407,18 @@ def main():
 
     print(f"\n{'=' * 50}")
     print(f"LibriSpeech evaluation — {limit_desc}")
-    print(f"Dataset: openslr/librispeech_asr / {LIBRISPEECH_SUBCONFIG} / split={LIBRISPEECH_SPLIT}")
+    print(f"Dataset: {LIBRISPEECH_MAIN} / {LIBRISPEECH_SUBCONFIG} / split={LIBRISPEECH_SPLIT}")
     print(f"{'=' * 50}")
 
     chunked_wers, full_wers = [], []
     total_duration = 0.0
 
     for idx, sample in enumerate(dataset):
+        # On first sample, print available keys to help diagnose reference issues
+        if idx == 0:
+            print(f"[DEBUG] Sample keys: {list(sample.keys())}")
+            print(f"[DEBUG] 'text' value: {sample.get('text', '<NOT FOUND>')!r}")
+
         # Apply limits
         if NUM_SAMPLES > 0 and idx >= NUM_SAMPLES:
             print(f"\nReached sample limit ({NUM_SAMPLES}). Stopping.")

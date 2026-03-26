@@ -143,6 +143,9 @@ const studyPrevPageBtn      = document.getElementById('study-prev-page-btn');
 const studyNextPageBtn      = document.getElementById('study-next-page-btn');
 const studyPageIndicator    = document.getElementById('study-page-indicator');
 
+// Config: set to true to enable the confidence % toggle button
+const FEATURE_CONFIDENCE = false;
+
 // Confidence display toggle
 let showConfidence = false;
 
@@ -215,7 +218,8 @@ function initializeEventListeners() {
     correctBtn.addEventListener('click', () => recordStudyScore('correct'));
 
     transcribeBtn.addEventListener('click', toggleTranscription);
-    confidenceToggleBtn.addEventListener('click', toggleConfidenceDisplay);
+    confidenceToggleBtn.style.display = FEATURE_CONFIDENCE ? '' : 'none';
+    if (FEATURE_CONFIDENCE) confidenceToggleBtn.addEventListener('click', toggleConfidenceDisplay);
 
     // Page navigation
     deletePageBtn.addEventListener('click', deleteCurrentPage);
@@ -405,6 +409,7 @@ function toggleMicrophone() {
 
 // Toggle Language Script (Latin abc ↔ International 文)
 function toggleLanguageScript() {
+    if (isCurrentPageLocked()) return;
     journalState.isLatinScript = !journalState.isLatinScript;
     updateLanguageScriptUI();
 
@@ -775,6 +780,12 @@ function checkTranscriptionDone() {
     transcribeBtn.classList.remove('processing');
     transcribeBtn.textContent = 'Transcribe';
     transcribeBtn.disabled    = false;
+    // Lock the page if transcription produced content
+    if (englishTextEl.textContent.trim()) {
+        const page = journalState.pages[journalState.currentPageIndex];
+        page.locked = true;
+        englishTextEl.contentEditable = 'false';
+    }
     saveCurrentPageToState();
 }
 
@@ -810,6 +821,8 @@ async function sendTranscribeChunk(blob, chunkSeconds) {
         const translationWords = (data.translation   || '').trim().split(/\s+/).filter(Boolean);
 
         if (!transcriptWords.length) return;
+        const cleaned = transcriptWords.map(w => w.replace(/[.,!?]/g, '').toLowerCase());
+        if (transcriptWords.length <= 3 && cleaned.every(w => WHISPER_HALLUCINATIONS.has(w))) return;
         typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds, data.confidence ?? null);
     } catch (err) {
         console.warn('Transcribe chunk failed:', err);
