@@ -112,7 +112,7 @@ async def translate_text(
 
     return {"translation": translated, "confidence": confidence}
 
-FORCE_PRONUNCIATION_LANG = False  # set True to force Whisper to the target language
+FORCE_PRONUNCIATION_LANG = True  # set True to force Whisper to the target language
 
 def _word_similarity(expected: str, got: str) -> float:
     """Simple word-overlap similarity between two strings (0.0 – 1.0)."""
