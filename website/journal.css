@@ -1206,6 +1206,31 @@ body {
     opacity: 1;
 }
 
+.journal-scores {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.journal-score {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 999px;
+    line-height: 1.5;
+}
+
+.correct-score {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10B981;
+}
+
+.missed-score {
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+}
+
 .journal-delete-btn:hover {
     color: #EF4444;
     background: #FEF2F2;

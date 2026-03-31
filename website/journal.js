@@ -44,8 +44,6 @@ const journalState = {
     isStudyMode: false,
     studyShowingSource: true,
     studyPageIndex: 0,
-    missedCount: 0,
-    correctCount: 0,
 };
 
 // Audio streaming state
@@ -250,12 +248,20 @@ function stripRomanized(el) {
 
 function saveCurrentPageToState() {
     const page = journalState.pages[journalState.currentPageIndex];
-    page.leftText  = stripRomanized(englishTextEl);
-    page.rightText = stripRomanized(spanishTextEl);
+    page.leftText      = stripRomanized(englishTextEl);
+    page.rightText     = stripRomanized(spanishTextEl);
+    page.leftLanguage  = journalState.leftLanguage;
+    page.rightLanguage = journalState.rightLanguage;
 }
 
 function renderCurrentPage() {
     const page = journalState.pages[journalState.currentPageIndex];
+    // Restore per-page language pair before rendering
+    if (page.leftLanguage)  journalState.leftLanguage  = page.leftLanguage;
+    if (page.rightLanguage) journalState.rightLanguage = page.rightLanguage;
+    updateLanguageButtonLabels();
+    updateLanguageOptionSelected();
+    updatePlaceholders();
     englishTextEl.innerHTML = page.leftText || '';
     spanishTextEl.innerHTML = page.rightText || '';
     // Apply locked state — locked pages are read-only on both sides
@@ -291,7 +297,7 @@ function updatePageIndicator() {
 function deleteCurrentPage() {
     if (journalState.pages.length === 1) {
         // Only page — reset it instead of blocking
-        journalState.pages[0] = { leftText: '', rightText: '', locked: false };
+        journalState.pages[0] = { leftText: '', rightText: '', locked: false, leftLanguage: journalState.leftLanguage, rightLanguage: journalState.rightLanguage, missed: 0, correct: 0 };
         renderCurrentPage();
         return;
     }
@@ -309,7 +315,7 @@ function goToPage(index) {
 
 function addNewPage() {
     saveCurrentPageToState();
-    journalState.pages.push({ leftText: '', rightText: '', locked: false });
+    journalState.pages.push({ leftText: '', rightText: '', locked: false, leftLanguage: journalState.leftLanguage, rightLanguage: journalState.rightLanguage, missed: 0, correct: 0 });
     journalState.currentPageIndex = journalState.pages.length - 1;
     renderCurrentPage();
 }
@@ -984,7 +990,10 @@ async function retranslateRightPage() {
 // ── Romanization (CJK → Latin subtitles) ─────────────────────────────────────
 
 async function romanizeDiv(div, lang) {
-    const text = div.textContent.trim();
+    // Clone and strip injected spans so they don't contaminate the romanization input
+    const clone = div.cloneNode(true);
+    clone.querySelectorAll('.conf-label, .romanized').forEach(n => n.remove());
+    const text = clone.textContent.trim();
     if (!text) return;
     // Remove any existing romanized subtitle on this div
     div.querySelectorAll('.romanized').forEach(n => n.remove());
@@ -1077,8 +1086,6 @@ function saveJournal() {
         pages:        journalState.pages,
         leftLanguage:  journalState.leftLanguage,
         rightLanguage: journalState.rightLanguage,
-        missedCount:  journalState.missedCount,
-        correctCount: journalState.correctCount,
     };
 
     if (journalState.currentJournalId) {
@@ -1124,6 +1131,11 @@ function loadJournalEntries() {
 }
 
 function createJournalListItem(entry) {
+    const pages       = entry.pages || [];
+    const totalCorrect = pages.reduce((s, p) => s + (p.correct || 0), 0);
+    const totalMissed  = pages.reduce((s, p) => s + (p.missed  || 0), 0);
+    const hasScores    = totalCorrect > 0 || totalMissed > 0;
+
     const div = document.createElement('div');
     div.className = 'journal-item';
     div.dataset.journalId = entry.id;
@@ -1136,6 +1148,10 @@ function createJournalListItem(entry) {
             <polyline points="10 9 9 9 8 9"></polyline>
         </svg>
         <span class="journal-name">${escapeHtml(entry.title)}</span>
+        ${hasScores ? `<span class="journal-scores">
+            <span class="journal-score correct-score">${totalCorrect}</span>
+            <span class="journal-score missed-score">${totalMissed}</span>
+        </span>` : ''}
         <button type="button" class="journal-delete-btn" aria-label="Delete journal" title="Delete">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -1196,17 +1212,47 @@ function exitStudyMode() {
 function getTextFromHTML(html) {
     const el = document.createElement('div');
     el.innerHTML = html || '';
-    el.querySelectorAll('.conf-label').forEach(s => s.remove());
+    el.querySelectorAll('.conf-label, .romanized').forEach(s => s.remove());
     return el.textContent.trim().replace(/\n{3,}/g, '\n\n');
 }
 
-function syncStudyFaces() {
-    studySourceLabel.textContent = languageNames[journalState.leftLanguage]  || 'English';
-    studyTargetLabel.textContent = languageNames[journalState.rightLanguage] || 'Spanish';
+async function setStudyFaceText(el, text, lang) {
+    el.textContent = text;
+    if (!text || !CJK_LANGS.has(lang)) return;
+    try {
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('lang', lang);
+        const response = await fetch(`${SERVER_URL}/romanize`, { method: 'POST', body: formData });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.romanized) {
+            const sub = document.createElement('span');
+            sub.className = 'romanized';
+            sub.textContent = data.romanized;
+            el.appendChild(sub);
+        }
+    } catch (err) {
+        console.warn('Study romanization failed:', err);
+    }
+}
 
+function syncStudyFaces() {
     const page = journalState.pages[journalState.studyPageIndex];
-    studySourceText.textContent = getTextFromHTML(page.leftText)  || 'No content on this page.';
-    studyTargetText.textContent = getTextFromHTML(page.rightText) || 'No translation on this page.';
+    const leftLang  = page.leftLanguage  || journalState.leftLanguage;
+    const rightLang = page.rightLanguage || journalState.rightLanguage;
+
+    studySourceLabel.textContent = languageNames[leftLang]  || 'English';
+    studyTargetLabel.textContent = languageNames[rightLang] || 'Spanish';
+
+    const sourceText = getTextFromHTML(page.leftText)  || 'No content on this page.';
+    const targetText = getTextFromHTML(page.rightText) || 'No translation on this page.';
+
+    setStudyFaceText(studySourceText, sourceText, leftLang);
+    setStudyFaceText(studyTargetText, targetText, rightLang);
+
+    missedCountEl.textContent  = page.missed  || 0;
+    correctCountEl.textContent = page.correct || 0;
 
     updateStudyPageIndicator();
 }
@@ -1239,27 +1285,29 @@ function updateFlipButtonText() {
 }
 
 function recordStudyScore(type) {
+    const page = journalState.pages[journalState.studyPageIndex];
     if (type === 'missed') {
-        journalState.missedCount++;
-        missedCountEl.textContent = journalState.missedCount;
+        page.missed = (page.missed || 0) + 1;
+        missedCountEl.textContent = page.missed;
     } else {
-        journalState.correctCount++;
-        correctCountEl.textContent = journalState.correctCount;
+        page.correct = (page.correct || 0) + 1;
+        correctCountEl.textContent = page.correct;
     }
     if (journalState.currentJournalId) {
         const entries = getJournalEntries();
         const entry   = entries.find(e => e.id === journalState.currentJournalId);
-        if (entry) {
-            entry.missedCount  = journalState.missedCount;
-            entry.correctCount = journalState.correctCount;
+        if (entry && entry.pages && entry.pages[journalState.studyPageIndex]) {
+            entry.pages[journalState.studyPageIndex].missed  = page.missed  || 0;
+            entry.pages[journalState.studyPageIndex].correct = page.correct || 0;
             saveJournalEntries(entries);
+            loadJournalEntries();
         }
     }
 }
 
 function updateScoreDisplay() {
-    missedCountEl.textContent  = journalState.missedCount;
-    correctCountEl.textContent = journalState.correctCount;
+    missedCountEl.textContent  = 0;
+    correctCountEl.textContent = 0;
 }
 
 // ── Journal CRUD ──────────────────────────────────────────────────────────────
@@ -1267,10 +1315,8 @@ function updateScoreDisplay() {
 function startNewJournal() {
     journalState.currentJournalId  = null;
     journalTitleEl.textContent      = 'Journal';
-    journalState.pages              = [{ leftText: '', rightText: '', locked: false }];
+    journalState.pages              = [{ leftText: '', rightText: '', locked: false, leftLanguage: journalState.leftLanguage, rightLanguage: journalState.rightLanguage, missed: 0, correct: 0 }];
     journalState.currentPageIndex   = 0;
-    journalState.missedCount        = 0;
-    journalState.correctCount       = 0;
     updateScoreDisplay();
     renderCurrentPage();
     journalTitleEl.focus();
@@ -1285,39 +1331,28 @@ function openJournal(journalId) {
 
     journalTitleEl.textContent = (entry.title || 'Journal').slice(0, MAX_JOURNAL_TITLE_LENGTH);
 
+    const entryLeft  = entry.leftLanguage  || 'en';
+    const entryRight = entry.rightLanguage || 'es';
+
     // Support both new pages format and legacy englishText/spanishText
     if (entry.pages && entry.pages.length) {
-        // Normalise pages saved before the lock feature existed
+        // Normalise pages saved before the lock/per-page-language features existed
         journalState.pages = entry.pages.map(p => ({
-            leftText:  p.leftText  || '',
-            rightText: p.rightText || '',
-            locked:    p.leftText ? true : (p.locked || false),
+            leftText:      p.leftText  || '',
+            rightText:     p.rightText || '',
+            locked:        p.leftText ? true : (p.locked || false),
+            leftLanguage:  p.leftLanguage  || entryLeft,
+            rightLanguage: p.rightLanguage || entryRight,
+            missed:        p.missed  || 0,
+            correct:       p.correct || 0,
         }));
     } else {
-        journalState.pages = [{ leftText: entry.englishText || '', rightText: entry.spanishText || '', locked: !!(entry.englishText) }];
+        journalState.pages = [{ leftText: entry.englishText || '', rightText: entry.spanishText || '', locked: !!(entry.englishText), leftLanguage: entryLeft, rightLanguage: entryRight }];
     }
     journalState.currentPageIndex  = 0;
     journalState.currentJournalId  = entry.id;
-    renderCurrentPage();
+    renderCurrentPage(); // restores per-page languages and updates UI
 
-    if (entry.leftLanguage) {
-        journalState.leftLanguage = entry.leftLanguage;
-        languageLeftLabel.textContent = languageNames[entry.leftLanguage] || 'English';
-    }
-    if (entry.rightLanguage) {
-        journalState.rightLanguage = entry.rightLanguage;
-        languageRightLabel.textContent = languageNames[entry.rightLanguage] || 'Spanish';
-    }
-    if (journalState.leftLanguage === journalState.rightLanguage) {
-        const other = Object.keys(languageNames).find(code => code !== journalState.leftLanguage);
-        journalState.rightLanguage = other || 'es';
-        languageRightLabel.textContent = languageNames[journalState.rightLanguage];
-    }
-    updateLanguageOptionSelected();
-    updatePlaceholders();
-
-    journalState.missedCount  = entry.missedCount  || 0;
-    journalState.correctCount = entry.correctCount || 0;
     updateScoreDisplay();
 
     window.scrollTo(0, 0);
