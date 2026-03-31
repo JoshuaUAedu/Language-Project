@@ -252,6 +252,8 @@ function renderCurrentPage() {
     // Apply locked state — locked pages are read-only on both sides
     const isLocked = page.locked || false;
     englishTextEl.contentEditable = isLocked ? 'false' : 'true';
+    // Lock the source language button — swap still works, manual selection does not
+    languageLeftBtn.disabled = isLocked;
     // Re-apply confidence badge colors (inline style lost on innerHTML reset)
     Array.from(spanishTextEl.children).forEach(div => {
         const raw = div.dataset.confidence;
@@ -348,7 +350,7 @@ function isCurrentPageLocked() {
 }
 
 function selectLanguage(side, code) {
-    if (isCurrentPageLocked()) { closeLanguageDropdowns(); return; }
+    if (side === 'left'  && isCurrentPageLocked())               { closeLanguageDropdowns(); return; }
     if (side === 'left'  && code === journalState.rightLanguage) return;
     if (side === 'right' && code === journalState.leftLanguage)  return;
 
@@ -358,6 +360,8 @@ function selectLanguage(side, code) {
     } else {
         journalState.rightLanguage = code;
         languageRightLabel.textContent = languageNames[code];
+        // If the page has locked content, retranslate the right page
+        if (isCurrentPageLocked()) retranslateRightPage();
     }
     updateLanguageOptionSelected();
     updatePlaceholders();
@@ -365,12 +369,19 @@ function selectLanguage(side, code) {
 }
 
 function swapLanguages() {
-    if (isCurrentPageLocked()) return;
     [journalState.leftLanguage, journalState.rightLanguage] =
         [journalState.rightLanguage, journalState.leftLanguage];
     updateLanguageButtonLabels();
     updateLanguageOptionSelected();
     updatePlaceholders();
+    // If page has content, swap the text on both sides as well
+    if (isCurrentPageLocked()) {
+        const leftHTML = englishTextEl.innerHTML;
+        englishTextEl.innerHTML = spanishTextEl.innerHTML;
+        spanishTextEl.innerHTML = leftHTML;
+        saveCurrentPageToState();
+        renderCurrentPage();
+    }
 }
 
 function updateLanguageButtonLabels() {
@@ -409,7 +420,6 @@ function toggleMicrophone() {
 
 // Toggle Language Script (Latin abc ↔ International 文)
 function toggleLanguageScript() {
-    if (isCurrentPageLocked()) return;
     journalState.isLatinScript = !journalState.isLatinScript;
     updateLanguageScriptUI();
 
@@ -916,6 +926,37 @@ async function translateLine(text, targetDiv) {
         console.warn('Translation failed:', err);
         targetDiv.textContent = '';
         targetDiv.classList.remove('translation-pending');
+    }
+}
+
+// Re-translate the right page when the target language changes on a locked page
+async function retranslateRightPage() {
+    const sourceText = englishTextEl.textContent.trim();
+    if (!sourceText) return;
+
+    spanishTextEl.innerHTML = '';
+    const pendingDiv = document.createElement('div');
+    pendingDiv.classList.add('translation-pending');
+    pendingDiv.textContent = '…';
+    spanishTextEl.appendChild(pendingDiv);
+
+    try {
+        const formData = new FormData();
+        formData.append('text', sourceText);
+        formData.append('source_lang', journalState.leftLanguage);
+        formData.append('target_lang', journalState.rightLanguage);
+
+        const response = await fetch(`${SERVER_URL}/translate`, { method: 'POST', body: formData });
+        if (!response.ok) { pendingDiv.textContent = ''; return; }
+
+        const data = await response.json();
+        pendingDiv.classList.remove('translation-pending');
+        pendingDiv.textContent = data.translation || '';
+        saveCurrentPageToState();
+    } catch (err) {
+        console.warn('Retranslation failed:', err);
+        pendingDiv.textContent = '';
+        pendingDiv.classList.remove('translation-pending');
     }
 }
 

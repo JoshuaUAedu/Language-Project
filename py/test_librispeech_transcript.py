@@ -26,17 +26,17 @@ MAX_CHUNK_DURATION = 6.0    # force-cut ceiling (seconds); 0 = disabled 6
 SILENCE_SEARCH_WINDOW = .5  #.5
 SILENCE_WINDOW_SIZE = 0.05   #.05
 SAMPLE_RATE = 16000
-MIN_AUDIO_ENERGY = 0.01
-OVERLAP_DURATION = 1.5      # seconds of previous chunk to prepend for Whisper context .5
+MIN_AUDIO_ENERGY = 1.5
+OVERLAP_DURATION = 5      # seconds of previous chunk to prepend for Whisper context .5
 OVERLAP_MATCH_WORDS = 10   # max words to try matching when stripping overlap
-VERBOSE = True             # True: show per-sample transcripts and WER; False: averages only
+VERBOSE = False             # True: show per-sample transcripts and WER; False: averages only
 VERBOSE_SHOW_NORMALIZED = False  # additionally print normalized text in verbose mode
 
 # ---- How much to transcribe ----
 # Set NUM_SAMPLES to limit by number of samples (0 = no limit).
 # Set MAX_TOTAL_DURATION to limit by total audio seconds (0.0 = no limit).
 # Both limits are applied together — whichever is reached first stops evaluation.
-NUM_SAMPLES = 500       # max samples to evaluate (0 = unlimited)
+NUM_SAMPLES = 500      # max samples to evaluate (0 = unlimited)
 MAX_TOTAL_DURATION = 0.0    # max cumulative audio seconds to evaluate (0.0 = unlimited)
 
 # ---- LibriSpeech dataset config ----
