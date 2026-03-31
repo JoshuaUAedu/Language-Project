@@ -112,6 +112,32 @@ async def translate_text(
 
     return {"translation": translated, "confidence": confidence}
 
+def _word_similarity(expected: str, got: str) -> float:
+    """Simple word-overlap similarity between two strings (0.0 – 1.0)."""
+    exp_words = expected.lower().split()
+    got_words  = got.lower().split()
+    if not exp_words:
+        return 0.0
+    matches = sum(1 for w in got_words if w in exp_words)
+    return min(matches / len(exp_words), 1.0)
+
+@app.post("/pronunciation")
+async def check_pronunciation(
+    file: UploadFile = File(...),
+    expected_text: str = Form(...),
+    lang: str = Form('es'),
+):
+    audio_bytes = await file.read()
+    content_type = file.content_type or "audio/webm"
+    ext = "wav" if "wav" in content_type else "webm"
+    temp_path = f"temp_speak.{ext}"
+    with open(temp_path, "wb") as f:
+        f.write(audio_bytes)
+
+    spoken, _ = transcription(temp_path, transcriber_model, forced_lang=lang or None)
+    score = _word_similarity(expected_text, spoken)
+    return {"spoken": spoken, "score": round(score, 2)}
+
 @app.post("/romanize")
 async def romanize_text(
     text: str = Form(...),

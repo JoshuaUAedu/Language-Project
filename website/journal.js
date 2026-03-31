@@ -140,6 +140,9 @@ const bindingPageIndicator  = document.getElementById('binding-page-indicator');
 const studyPrevPageBtn      = document.getElementById('study-prev-page-btn');
 const studyNextPageBtn      = document.getElementById('study-next-page-btn');
 const studyPageIndicator    = document.getElementById('study-page-indicator');
+const speakBtn              = document.getElementById('speak-btn');
+const speakBtnText          = document.getElementById('speak-btn-text');
+const speakResult           = document.getElementById('speak-result');
 
 // Languages that use non-Latin scripts and need romanization subtitles
 const CJK_LANGS = new Set(['zh', 'ja', 'ko']);
@@ -217,6 +220,7 @@ function initializeEventListeners() {
     flipPageBtn.addEventListener('click', flipStudyPage);
     missedBtn.addEventListener('click', () => recordStudyScore('missed'));
     correctBtn.addEventListener('click', () => recordStudyScore('correct'));
+    speakBtn.addEventListener('click', handleSpeakBtn);
 
     transcribeBtn.addEventListener('click', toggleTranscription);
     confidenceToggleBtn.style.display = FEATURE_CONFIDENCE ? '' : 'none';
@@ -1267,11 +1271,13 @@ function updateStudyPageIndicator() {
 
 function goToStudyPage(index) {
     if (index < 0 || index >= journalState.pages.length) return;
+    stopSpeakRecording();
     journalState.studyPageIndex     = index;
     journalState.studyShowingSource = true;
     studyCardInner.classList.remove('flipped');
     syncStudyFaces();
     updateFlipButtonText();
+    resetSpeakUI();
 }
 
 function flipStudyPage() {
@@ -1282,6 +1288,98 @@ function flipStudyPage() {
 
 function updateFlipButtonText() {
     flipPageBtnText.textContent = journalState.studyShowingSource ? 'Show translation' : 'Show original';
+    // Speak is only available while looking at the source (challenge mode)
+    speakBtn.disabled = !journalState.studyShowingSource;
+    if (!journalState.studyShowingSource) resetSpeakUI();
+}
+
+// ── Pronunciation check ───────────────────────────────────────────────────────
+
+const PRONUNCIATION_PASS_THRESHOLD = 0.6; // 60% word match = correct
+
+const speakState = {
+    isRecording: false,
+    mediaStream: null,
+    recorder: null,
+    chunks: [],
+};
+
+function resetSpeakUI() {
+    speakBtnText.textContent = 'Speak';
+    speakBtn.classList.remove('recording');
+    speakResult.textContent  = '';
+    speakResult.className    = 'speak-result';
+}
+
+async function handleSpeakBtn() {
+    if (speakState.isRecording) {
+        stopSpeakRecording();
+    } else {
+        await startSpeakRecording();
+    }
+}
+
+async function startSpeakRecording() {
+    try {
+        speakState.mediaStream = streamState.mediaStream
+            || await navigator.mediaDevices.getUserMedia({ audio: true });
+        speakState.chunks   = [];
+        speakState.recorder = new MediaRecorder(speakState.mediaStream);
+        speakState.recorder.ondataavailable = e => { if (e.data.size) speakState.chunks.push(e.data); };
+        speakState.recorder.onstop = onSpeakRecordingDone;
+        speakState.recorder.start();
+        speakState.isRecording  = true;
+        speakBtnText.textContent = 'Stop';
+        speakBtn.classList.add('recording');
+        speakResult.textContent  = '';
+        speakResult.className    = 'speak-result';
+    } catch (err) {
+        console.warn('Speak recording failed:', err);
+        speakResult.textContent = 'Microphone unavailable.';
+        speakResult.className   = 'speak-result missed';
+    }
+}
+
+function stopSpeakRecording() {
+    if (speakState.recorder && speakState.isRecording) {
+        speakState.recorder.stop();
+        speakState.isRecording   = false;
+        speakBtnText.textContent  = 'Checking…';
+        speakBtn.classList.remove('recording');
+        speakBtn.disabled         = true;
+    }
+}
+
+async function onSpeakRecordingDone() {
+    const blob = new Blob(speakState.chunks, { type: 'audio/webm' });
+    const page = journalState.pages[journalState.studyPageIndex];
+    const targetLang = page.rightLanguage || journalState.rightLanguage;
+    const expectedText = getTextFromHTML(page.rightText);
+
+    try {
+        const formData = new FormData();
+        formData.append('file', blob, 'speak.webm');
+        formData.append('expected_text', expectedText);
+        formData.append('lang', targetLang);
+
+        const response = await fetch(`${SERVER_URL}/pronunciation`, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Server error');
+
+        const data = await response.json();
+        const passed = data.score >= PRONUNCIATION_PASS_THRESHOLD;
+
+        speakResult.textContent = `"${data.spoken}" — ${Math.round(data.score * 100)}%`;
+        speakResult.className   = `speak-result ${passed ? 'correct' : 'missed'}`;
+
+        recordStudyScore(passed ? 'correct' : 'missed');
+    } catch (err) {
+        console.warn('Pronunciation check failed:', err);
+        speakResult.textContent = 'Could not check. Try again.';
+        speakResult.className   = 'speak-result missed';
+    } finally {
+        speakBtnText.textContent = 'Speak';
+        speakBtn.disabled        = false;
+    }
 }
 
 function recordStudyScore(type) {

@@ -611,6 +611,62 @@ body {
     width: 100%;
 }
 
+.study-center-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.speak-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: 'Merriweather', serif;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.speak-btn:hover:not(:disabled) {
+    background: #bae6fd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.2);
+}
+
+.speak-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.speak-btn.recording {
+    background: #fee2e2;
+    color: #dc2626;
+    animation: speak-pulse 1s ease-in-out infinite;
+}
+
+@keyframes speak-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+}
+
+.speak-result {
+    font-size: 0.8rem;
+    font-style: italic;
+    min-height: 1.2em;
+    text-align: center;
+    transition: color 0.3s;
+}
+
+.speak-result.correct { color: #16a34a; }
+.speak-result.missed  { color: #dc2626; }
+
 .flip-page-btn {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
