@@ -303,11 +303,21 @@ function deleteCurrentPage() {
         // Only page — reset it instead of blocking
         journalState.pages[0] = { leftText: '', rightText: '', locked: false, leftLanguage: journalState.leftLanguage, rightLanguage: journalState.rightLanguage, missed: 0, correct: 0 };
         renderCurrentPage();
-        return;
+    } else {
+        journalState.pages.splice(journalState.currentPageIndex, 1);
+        journalState.currentPageIndex = Math.min(journalState.currentPageIndex, journalState.pages.length - 1);
+        renderCurrentPage();
     }
-    journalState.pages.splice(journalState.currentPageIndex, 1);
-    journalState.currentPageIndex = Math.min(journalState.currentPageIndex, journalState.pages.length - 1);
-    renderCurrentPage();
+    // Sync updated pages (and their scores) to the persisted journal entry
+    if (journalState.currentJournalId) {
+        const entries = getJournalEntries();
+        const entry   = entries.find(e => e.id === journalState.currentJournalId);
+        if (entry) {
+            entry.pages = journalState.pages.map(p => ({ ...p }));
+            saveJournalEntries(entries);
+            loadJournalEntries();
+        }
+    }
 }
 
 function goToPage(index) {
@@ -1194,6 +1204,16 @@ function toggleStudyMode() {
 }
 
 function enterStudyMode() {
+    // Stop live transcription if running
+    if (transcribeState.isTranscribing) {
+        stopTranscription();
+    }
+    // Auto-mute microphone, saving previous state for restore on exit
+    journalState._preMicMuted = journalState.isMicMuted;
+    if (!journalState.isMicMuted) {
+        journalState.isMicMuted = true;
+        updateMicrophoneUI();
+    }
     saveCurrentPageToState();
     notebookEl.classList.add('study-mode');
     studyModeView.setAttribute('aria-hidden', 'false');
@@ -1207,6 +1227,11 @@ function enterStudyMode() {
 }
 
 function exitStudyMode() {
+    // Restore microphone to pre-study state
+    if (journalState._preMicMuted === false && journalState.isMicMuted) {
+        journalState.isMicMuted = false;
+        updateMicrophoneUI();
+    }
     notebookEl.classList.remove('study-mode');
     studyModeView.setAttribute('aria-hidden', 'true');
     studyBtn.textContent = 'Study';
