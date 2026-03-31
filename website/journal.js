@@ -143,6 +143,9 @@ const studyPrevPageBtn      = document.getElementById('study-prev-page-btn');
 const studyNextPageBtn      = document.getElementById('study-next-page-btn');
 const studyPageIndicator    = document.getElementById('study-page-indicator');
 
+// Languages that use non-Latin scripts and need romanization subtitles
+const CJK_LANGS = new Set(['zh', 'ja', 'ko']);
+
 // Config: set to true to enable the confidence % toggle button
 const FEATURE_CONFIDENCE = false;
 
@@ -239,10 +242,16 @@ function initializeEventListeners() {
 
 // ── Page Management ───────────────────────────────────────────────────────────
 
+function stripRomanized(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.romanized').forEach(n => n.remove());
+    return clone.innerHTML;
+}
+
 function saveCurrentPageToState() {
     const page = journalState.pages[journalState.currentPageIndex];
-    page.leftText = englishTextEl.innerHTML;
-    page.rightText = spanishTextEl.innerHTML;
+    page.leftText  = stripRomanized(englishTextEl);
+    page.rightText = stripRomanized(spanishTextEl);
 }
 
 function renderCurrentPage() {
@@ -252,8 +261,8 @@ function renderCurrentPage() {
     // Apply locked state — locked pages are read-only on both sides
     const isLocked = page.locked || false;
     englishTextEl.contentEditable = isLocked ? 'false' : 'true';
-    // Lock the source language button — swap still works, manual selection does not
-    languageLeftBtn.disabled = isLocked;
+    // Lock the source language button whenever there is content — swap still works
+    languageLeftBtn.disabled = !!(englishTextEl.textContent.trim() || spanishTextEl.textContent.trim());
     // Re-apply confidence badge colors (inline style lost on innerHTML reset)
     Array.from(spanishTextEl.children).forEach(div => {
         const raw = div.dataset.confidence;
@@ -263,6 +272,9 @@ function renderCurrentPage() {
     });
     spanishTextEl.classList.toggle('show-confidence', showConfidence);
     updatePageIndicator();
+    // Add romanization subtitles for any CJK side
+    romanizePageSide(englishTextEl, journalState.leftLanguage);
+    romanizePageSide(spanishTextEl, journalState.rightLanguage);
 }
 
 function updatePageIndicator() {
@@ -350,7 +362,8 @@ function isCurrentPageLocked() {
 }
 
 function selectLanguage(side, code) {
-    if (side === 'left'  && isCurrentPageLocked())               { closeLanguageDropdowns(); return; }
+    const hasContent = !!(englishTextEl.textContent.trim() || spanishTextEl.textContent.trim());
+    if (side === 'left'  && hasContent)                          { closeLanguageDropdowns(); return; }
     if (side === 'left'  && code === journalState.rightLanguage) return;
     if (side === 'right' && code === journalState.leftLanguage)  return;
 
@@ -360,8 +373,8 @@ function selectLanguage(side, code) {
     } else {
         journalState.rightLanguage = code;
         languageRightLabel.textContent = languageNames[code];
-        // If the page has locked content, retranslate the right page
-        if (isCurrentPageLocked()) retranslateRightPage();
+        // If the left page has content, retranslate the right page
+        if (englishTextEl.textContent.trim()) retranslateRightPage();
     }
     updateLanguageOptionSelected();
     updatePlaceholders();
@@ -374,8 +387,8 @@ function swapLanguages() {
     updateLanguageButtonLabels();
     updateLanguageOptionSelected();
     updatePlaceholders();
-    // If page has content, swap the text on both sides as well
-    if (isCurrentPageLocked()) {
+    // If either side has content, swap the text as well
+    if (englishTextEl.textContent.trim() || spanishTextEl.textContent.trim()) {
         const leftHTML = englishTextEl.innerHTML;
         englishTextEl.innerHTML = spanishTextEl.innerHTML;
         spanishTextEl.innerHTML = leftHTML;
@@ -871,7 +884,11 @@ function typeChunkIntoPages(transcriptWords, translationWords, chunkSeconds, con
     });
 
     const doneMs = Math.max(transcriptWords.length, translationWords.length) * delay;
-    const id = setTimeout(() => { saveCurrentPageToState(); }, doneMs);
+    const id = setTimeout(() => {
+        saveCurrentPageToState();
+        romanizePageSide(englishTextEl, journalState.leftLanguage);
+        romanizePageSide(spanishTextEl, journalState.rightLanguage);
+    }, doneMs);
     transcribeState._typingTimeouts.push(id);
 }
 
@@ -922,6 +939,8 @@ async function translateLine(text, targetDiv) {
         targetDiv.classList.remove('translation-pending');
         targetDiv.textContent = data.translation || '';
         saveCurrentPageToState();
+        romanizePageSide(englishTextEl, journalState.leftLanguage);
+        romanizePageSide(spanishTextEl, journalState.rightLanguage);
     } catch (err) {
         console.warn('Translation failed:', err);
         targetDiv.textContent = '';
@@ -953,6 +972,8 @@ async function retranslateRightPage() {
         pendingDiv.classList.remove('translation-pending');
         pendingDiv.textContent = data.translation || '';
         saveCurrentPageToState();
+        romanizePageSide(englishTextEl, journalState.leftLanguage);
+        romanizePageSide(spanishTextEl, journalState.rightLanguage);
     } catch (err) {
         console.warn('Retranslation failed:', err);
         pendingDiv.textContent = '';
@@ -960,10 +981,42 @@ async function retranslateRightPage() {
     }
 }
 
+// ── Romanization (CJK → Latin subtitles) ─────────────────────────────────────
+
+async function romanizeDiv(div, lang) {
+    const text = div.textContent.trim();
+    if (!text) return;
+    // Remove any existing romanized subtitle on this div
+    div.querySelectorAll('.romanized').forEach(n => n.remove());
+    try {
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('lang', lang);
+        const response = await fetch(`${SERVER_URL}/romanize`, { method: 'POST', body: formData });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.romanized) {
+            const sub = document.createElement('span');
+            sub.className = 'romanized';
+            sub.textContent = data.romanized;
+            div.appendChild(sub);
+        }
+    } catch (err) {
+        console.warn('Romanization failed:', err);
+    }
+}
+
+async function romanizePageSide(el, lang) {
+    if (!CJK_LANGS.has(lang)) return;
+    const divs = Array.from(el.children).filter(n => n.tagName === 'DIV');
+    for (const div of divs) await romanizeDiv(div, lang);
+}
+
 // Handle text changes
 function handleTextChange(e) {
     if (e.target.id === 'english-text') {
         journalState.pages[journalState.currentPageIndex].leftText = e.target.innerHTML;
+        languageLeftBtn.disabled = !!englishTextEl.textContent.trim();
     }
 }
 

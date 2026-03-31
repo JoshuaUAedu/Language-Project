@@ -20,3 +20,6 @@ mecab-python3
 unidic-lite
 sacrebleu[ja]
 sacrebleu[ko]
+pykakasi 
+pypinyin 
+hangul-romanize

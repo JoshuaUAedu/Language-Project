@@ -7,6 +7,22 @@ import os
 
 from translate import load_translate_model, translate, LANG_NNLB_MAP
 from transcribe import load_transcription_model, transcription
+from pykakasi import kakasi
+from pypinyin import pinyin, Style
+from hangul_romanize import Transliter
+from hangul_romanize.rule import academic
+
+def _romanize(text: str, lang: str) -> str:
+    if lang == 'ja':
+        kks = kakasi()
+        result = kks.convert(text)
+        return ' '.join(x['hepburn'] for x in result if x['hepburn'])
+    if lang == 'ko':
+        return Transliter(academic).translit(text)
+    if lang == 'zh':
+        result = pinyin(text, style=Style.TONE)
+        return ' '.join(x[0] for x in result)
+    return ''
 
 # Map Languages
 LANG_CODE_TO_NAME = {
@@ -95,6 +111,13 @@ async def translate_text(
         translated = text
 
     return {"translation": translated, "confidence": confidence}
+
+@app.post("/romanize")
+async def romanize_text(
+    text: str = Form(...),
+    lang: str = Form('ja'),
+):
+    return {"romanized": _romanize(text, lang)}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

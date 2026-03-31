@@ -100,6 +100,13 @@ J - Server set up for GPU
 	04. Basic transcription/translation is working
 	05. Realtime transcription is finally functional, though it is not super accurate right now and has erros like duplicates and when silent says 'you' and 'thank you'
 		
+K - Function Additions to Website + Live Transcription Accuracy Boosts
+	01. Added Study Mode
+	02. Switching Languages seamlessly
+	03. Folders for journals
+	04. Pages and locking pages when transcribed
+	05. Ability to type instead of speak
+	06. Romanization of languages not in latin letters
 
 Z - Ideas*
 	01. Make translation text and transcription text have typing animation and write out at same time

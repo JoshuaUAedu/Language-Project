@@ -1006,6 +1006,17 @@ body {
     display: inline-block;
 }
 
+/* Romanization subtitle shown under CJK text */
+.romanized {
+    display: block;
+    font-size: 0.72rem;
+    color: rgba(107, 114, 128, 0.6);
+    font-style: italic;
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
 .binding::before {
     content: '';
     position: absolute;
