@@ -1298,10 +1298,12 @@ function updateFlipButtonText() {
 const PRONUNCIATION_PASS_THRESHOLD = 0.6; // 60% word match = correct
 
 const speakState = {
-    isRecording: false,
-    mediaStream: null,
-    recorder: null,
-    chunks: [],
+    isRecording:     false,
+    audioContext:    null,
+    scriptProcessor: null,
+    sampleBuffer:    [],
+    totalSamples:    0,
+    sampleRate:      44100,
 };
 
 function resetSpeakUI() {
@@ -1321,14 +1323,32 @@ async function handleSpeakBtn() {
 
 async function startSpeakRecording() {
     try {
-        speakState.mediaStream = streamState.mediaStream
+        const stream = streamState.mediaStream
             || await navigator.mediaDevices.getUserMedia({ audio: true });
-        speakState.chunks   = [];
-        speakState.recorder = new MediaRecorder(speakState.mediaStream);
-        speakState.recorder.ondataavailable = e => { if (e.data.size) speakState.chunks.push(e.data); };
-        speakState.recorder.onstop = onSpeakRecordingDone;
-        speakState.recorder.start();
-        speakState.isRecording  = true;
+
+        const AudioCtx = window.AudioContext || /** @type {any} */ (window).webkitAudioContext;
+        speakState.audioContext    = new AudioCtx();
+        speakState.sampleRate      = speakState.audioContext.sampleRate;
+        const source               = speakState.audioContext.createMediaStreamSource(stream);
+        const processor            = speakState.audioContext.createScriptProcessor(4096, 1, 1);
+        speakState.scriptProcessor = processor;
+        speakState.sampleBuffer    = [];
+        speakState.totalSamples    = 0;
+        speakState.isRecording     = true;
+
+        processor.onaudioprocess = e => {
+            if (!speakState.isRecording) return;
+            const input = e.inputBuffer.getChannelData(0);
+            speakState.sampleBuffer.push(new Float32Array(input));
+            speakState.totalSamples += input.length;
+        };
+
+        const silentGain = speakState.audioContext.createGain();
+        silentGain.gain.value = 0;
+        source.connect(processor);
+        processor.connect(silentGain);
+        silentGain.connect(speakState.audioContext.destination);
+
         speakBtnText.textContent = 'Stop';
         speakBtn.classList.add('recording');
         speakResult.textContent  = '';
@@ -1341,31 +1361,44 @@ async function startSpeakRecording() {
 }
 
 function stopSpeakRecording() {
-    if (speakState.recorder && speakState.isRecording) {
-        speakState.recorder.stop();
-        speakState.isRecording   = false;
-        speakBtnText.textContent  = 'Checking…';
-        speakBtn.classList.remove('recording');
-        speakBtn.disabled         = true;
-    }
+    if (!speakState.isRecording) return;
+    speakState.isRecording = false;
+
+    const sampleRate = speakState.sampleRate || 44100;
+
+    if (speakState.scriptProcessor) { speakState.scriptProcessor.disconnect(); speakState.scriptProcessor = null; }
+    if (speakState.audioContext)    { speakState.audioContext.close();          speakState.audioContext    = null; }
+
+    speakBtnText.textContent = 'Checking…';
+    speakBtn.classList.remove('recording');
+    speakBtn.disabled = true;
+
+    if (!speakState.totalSamples) { resetSpeakUI(); speakBtn.disabled = false; return; }
+
+    const flat = new Float32Array(speakState.totalSamples);
+    let off = 0;
+    for (const chunk of speakState.sampleBuffer) { flat.set(chunk, off); off += chunk.length; }
+    speakState.sampleBuffer = [];
+    speakState.totalSamples = 0;
+
+    onSpeakRecordingDone(encodeWAV(flat, sampleRate));
 }
 
-async function onSpeakRecordingDone() {
-    const blob = new Blob(speakState.chunks, { type: 'audio/webm' });
-    const page = journalState.pages[journalState.studyPageIndex];
-    const targetLang = page.rightLanguage || journalState.rightLanguage;
+async function onSpeakRecordingDone(wavBlob) {
+    const page         = journalState.pages[journalState.studyPageIndex];
+    const targetLang   = page.rightLanguage || journalState.rightLanguage;
     const expectedText = getTextFromHTML(page.rightText);
 
     try {
         const formData = new FormData();
-        formData.append('file', blob, 'speak.webm');
+        formData.append('file', wavBlob, 'speak.wav');
         formData.append('expected_text', expectedText);
         formData.append('lang', targetLang);
 
         const response = await fetch(`${SERVER_URL}/pronunciation`, { method: 'POST', body: formData });
         if (!response.ok) throw new Error('Server error');
 
-        const data = await response.json();
+        const data   = await response.json();
         const passed = data.score >= PRONUNCIATION_PASS_THRESHOLD;
 
         speakResult.textContent = `"${data.spoken}" — ${Math.round(data.score * 100)}%`;

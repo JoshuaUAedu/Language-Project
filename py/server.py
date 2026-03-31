@@ -112,6 +112,8 @@ async def translate_text(
 
     return {"translation": translated, "confidence": confidence}
 
+FORCE_PRONUNCIATION_LANG = False  # set True to force Whisper to the target language
+
 def _word_similarity(expected: str, got: str) -> float:
     """Simple word-overlap similarity between two strings (0.0 – 1.0)."""
     exp_words = expected.lower().split()
@@ -134,7 +136,7 @@ async def check_pronunciation(
     with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
-    spoken, _ = transcription(temp_path, transcriber_model, forced_lang=lang or None)
+    spoken, _ = transcription(temp_path, transcriber_model, forced_lang=lang if FORCE_PRONUNCIATION_LANG else None)
     score = _word_similarity(expected_text, spoken)
     return {"spoken": spoken, "score": round(score, 2)}
 
