@@ -57,9 +57,9 @@ F - NEED to reorganize GitHub structure
 
 G - Model 3: Translation
 	01. Use Meta NNLB Pre trained translation Model
-	02. Make it directly connect to the recording.wav file and make accuracy high 90>
+	02. Make it directly connect to the recording.wav file and make accuracy high 
 	03. Function takes in str(text),source language, target language 
-	04. **Current languages: English, Spanish, Japanese, French, German
+	04. **Current languages: English, Spanish, Japanese, French, German, Korean, Chinese
 
 H - Jetstream2 GPU Set Up / Cloning instructions(Steps 03. onward)
 	01. Once GPU allocation is made with SSH key, connect to vscode
@@ -118,19 +118,6 @@ Z - Ideas*
 	07. Maybe load datasets with each 2000 examples only
 	08. above journal - streaming audio realtime transcription and translation with smaller model - variable voice detected pauses/batches for inference and transcribing while below full transriptions occur
 
-
-
-
-
-
-END GOAL
-- Whisper Transcription Model needs to be flawless with multiple languages (En,Es,Jp,Ko,Gm,Fr,Ch,Ru,etc)
-- Personal CNN Detection needs to be 95% accurate with no overfitting
-- Transcription Model - needs to be 95% accurate and work across multiple languages(default everything to English - English to everything)
-- Moshi Kyutai TTS - English only - tutor that can take in the translated text from OPUS or original text from whisper and help guide learning
-- Moshi model will need to have a document explaining its role, and goals to guide conversation such as (help student learn from text, explain meaning, 
-pronunciation, and deliver simple phrases to pair after text given, be professional, short and sweet)
-- would love to add a real time text and origin text (like English with Japanese underneath) to show what is being said from user and how the Moshi responds
 
 
 IDEAS - 
