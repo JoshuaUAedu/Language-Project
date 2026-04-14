@@ -107,6 +107,9 @@ K - Function Additions to Website + Live Transcription Accuracy Boosts
 	04. Pages and locking pages when transcribed
 	05. Ability to type instead of speak
 	06. Romanization of languages not in latin letters
+	07. Study Mode Pronunciation Test - uses Allosaurus for audio to get raw phonetic output
+			and uses Epitran (G2p for english only) to compare expected output with real transcription
+	
 
 Z - Ideas*
 	01. Make translation text and transcription text have typing animation and write out at same time

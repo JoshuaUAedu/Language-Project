@@ -23,5 +23,6 @@ sacrebleu[ko]
 pykakasi 
 pypinyin 
 hangul-romanize
-phonemizer
 python-Levenshtein
+epitran
+allosaurus

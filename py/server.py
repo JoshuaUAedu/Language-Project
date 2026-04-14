@@ -7,6 +7,7 @@ import os
 
 from translate import load_translate_model, translate, LANG_NNLB_MAP
 from transcribe import load_transcription_model, transcription
+from pronunciation import pronunciation_score
 from pykakasi import kakasi
 from pypinyin import pinyin, Style
 from hangul_romanize import Transliter
@@ -114,15 +115,6 @@ async def translate_text(
 
 FORCE_PRONUNCIATION_LANG = True  # set True to force Whisper to the target language
 
-def _word_similarity(expected: str, got: str) -> float:
-    """Simple word-overlap similarity between two strings (0.0 – 1.0)."""
-    exp_words = expected.lower().split()
-    got_words  = got.lower().split()
-    if not exp_words:
-        return 0.0
-    matches = sum(1 for w in got_words if w in exp_words)
-    return min(matches / len(exp_words), 1.0)
-
 @app.post("/pronunciation")
 async def check_pronunciation(
     file: UploadFile = File(...),
@@ -136,9 +128,12 @@ async def check_pronunciation(
     with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
+    # Transcribe for display text
     spoken, _ = transcription(temp_path, transcriber_model, forced_lang=lang if FORCE_PRONUNCIATION_LANG else None)
-    score = _word_similarity(expected_text, spoken)
-    return {"spoken": spoken, "score": round(score, 2)}
+
+    # Score using raw audio → allosaurus IPA vs expected text → G2P/Epitran IPA
+    score, exp_phonemes, spk_phonemes = pronunciation_score(expected_text, temp_path, lang=lang)
+    return {"spoken": spoken, "score": score, "expected_phonemes": exp_phonemes, "spoken_phonemes": spk_phonemes}
 
 @app.post("/romanize")
 async def romanize_text(
