@@ -26,3 +26,4 @@ hangul-romanize
 python-Levenshtein
 epitran
 allosaurus
+g2p-en
