@@ -667,6 +667,32 @@ body {
 .speak-result.correct { color: #16a34a; }
 .speak-result.missed  { color: #dc2626; }
 
+.speak-score {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.speak-phonemes {
+    font-size: 0.75rem;
+    font-style: normal;
+    text-align: left;
+    word-break: break-all;
+    line-height: 1.5;
+    color: inherit;
+}
+
+.ph-label {
+    font-weight: 600;
+    margin-right: 0.25rem;
+    opacity: 0.75;
+}
+
+.ph-text {
+    font-family: monospace;
+    letter-spacing: 0.05em;
+}
+
 .flip-page-btn {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;

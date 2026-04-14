@@ -1426,8 +1426,11 @@ async function onSpeakRecordingDone(wavBlob) {
         const data   = await response.json();
         const passed = data.score >= PRONUNCIATION_PASS_THRESHOLD;
 
-        speakResult.textContent = `"${data.spoken}" — ${Math.round(data.score * 100)}%`;
-        speakResult.className   = `speak-result ${passed ? 'correct' : 'missed'}`;
+        speakResult.innerHTML =
+            `<div class="speak-score ${passed ? 'correct' : 'missed'}">${Math.round(data.score * 100)}%</div>` +
+            `<div class="speak-phonemes"><span class="ph-label">Expected:</span> <span class="ph-text">${data.expected_phonemes}</span></div>` +
+            `<div class="speak-phonemes"><span class="ph-label">Heard:</span>    <span class="ph-text">${data.spoken_phonemes}</span></div>`;
+        speakResult.className = `speak-result ${passed ? 'correct' : 'missed'}`;
 
         recordStudyScore(passed ? 'correct' : 'missed');
     } catch (err) {

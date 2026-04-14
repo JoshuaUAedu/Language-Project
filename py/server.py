@@ -113,8 +113,6 @@ async def translate_text(
 
     return {"translation": translated, "confidence": confidence}
 
-FORCE_PRONUNCIATION_LANG = True  # set True to force Whisper to the target language
-
 @app.post("/pronunciation")
 async def check_pronunciation(
     file: UploadFile = File(...),
@@ -128,12 +126,9 @@ async def check_pronunciation(
     with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
-    # Transcribe for display text
-    spoken, _ = transcription(temp_path, transcriber_model, forced_lang=lang if FORCE_PRONUNCIATION_LANG else None)
-
     # Score using raw audio → allosaurus IPA vs expected text → G2P/Epitran IPA
     score, exp_phonemes, spk_phonemes = pronunciation_score(expected_text, temp_path, lang=lang)
-    return {"spoken": spoken, "score": score, "expected_phonemes": exp_phonemes, "spoken_phonemes": spk_phonemes}
+    return {"score": score, "expected_phonemes": exp_phonemes, "spoken_phonemes": spk_phonemes}
 
 @app.post("/romanize")
 async def romanize_text(
