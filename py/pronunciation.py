@@ -293,7 +293,7 @@ def _feq(a: float, b: float) -> bool:
     """Float equality with tolerance."""
     return abs(a - b) < _EPS
 
-def _align(exp: list[str], spk: list[str]) -> tuple[float, list[str], list[str]]:
+def _align(exp: list[str], spk: list[str]) -> tuple[list[str], list[str]]:
     """
     Needleman-Wunsch global alignment of two phone sequences.
 
@@ -302,9 +302,12 @@ def _align(exp: list[str], spk: list[str]) -> tuple[float, list[str], list[str]]
     The aligned lists are guaranteed to be the same length and to contain
     every input phone exactly once.
 
+    Returns only the aligned sequences — scoring is done separately by
+    _score_alignment so that the NW gap/mismatch penalties (which guide
+    alignment quality) don't corrupt the final pronunciation score.
+
     Returns
     -------
-    score        : float 0.0 – 1.0
     aligned_exp  : phone list with '-' for gaps
     aligned_spk  : phone list with '-' for gaps (same length as aligned_exp)
     """
@@ -357,14 +360,35 @@ def _align(exp: list[str], spk: list[str]) -> tuple[float, list[str], list[str]]
     aligned_spk.reverse()
 
     assert len(aligned_exp) == len(aligned_spk), "alignment length mismatch"
+    return aligned_exp, aligned_spk
 
-    # Normalise against the perfect score (every expected phone matched)
-    perfect = m * _MATCH
-    if perfect <= 0:
-        return 0.0, aligned_exp, aligned_spk
 
-    score = dp[m][n] / perfect
-    return round(max(score, 0.0), 2), aligned_exp, aligned_spk
+def _score_alignment(aligned_exp: list[str], aligned_spk: list[str]) -> float:
+    """
+    Score an already-aligned phone pair.  Keeps NW alignment separate from
+    scoring so the NW penalties don't corrupt the final grade.
+
+    Per aligned column:
+      exp='-'          extra spoken sound — ignored (no penalty for additions)
+      spk='-'          expected phone missing — 0 credit
+      both present     _phone_similarity(e, s):
+                         exact match  → 1.0
+                         near miss    → 0.33 – 0.67  (one articulatory feature off)
+                         different    → 0.0
+
+    Score = sum(per-column credit) / number-of-expected-phones
+    Range: 0.0 (nothing matched) – 1.0 (everything matched exactly)
+    """
+    n_expected = sum(1 for p in aligned_exp if p != '-')
+    if n_expected == 0:
+        return 0.0
+    total = sum(
+        _phone_similarity(e, s)
+        for e, s in zip(aligned_exp, aligned_spk)
+        if e != '-'          # skip extra spoken sounds
+        # s=='-' → similarity returns 0.0 implicitly since '-' not in features
+    )
+    return round(total / n_expected, 2)
 
 # ---------------------------------------------------------------------------
 # Epitran cache
@@ -618,6 +642,7 @@ def pronunciation_score(
     exp_phones = text_to_phones(expected_text, lang)
     spk_phones = audio_to_phones(wav_path, lang)
 
-    score, aligned_exp, aligned_spk = _align(exp_phones, spk_phones)
+    aligned_exp, aligned_spk = _align(exp_phones, spk_phones)
+    score = _score_alignment(aligned_exp, aligned_spk)
 
     return score, ' '.join(aligned_exp), ' '.join(aligned_spk)
