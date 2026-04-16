@@ -282,6 +282,48 @@ _MATCH        =  1.0
 _GAP          = -1.0
 _MISMATCH_MAX = -2.0
 
+# Minimum similarity to count a near-miss as correct and fix the Heard display.
+# 0.67 = two of three articulatory features match (e.g. æ vs a, p vs b).
+_TRIPHONE_CORRECTION_THRESHOLD = 2 / 3
+
+# ---------------------------------------------------------------------------
+# Cross-system phoneme normalization
+#
+# Allosaurus (heard) and Epitran/G2P (expected) use overlapping but inconsistent
+# symbol sets for the same sounds.  This map collapses known inter-system
+# variants to a shared canonical before alignment, so the aligner and triphone
+# scorer see genuine pronunciation differences rather than symbol mismatches.
+#
+# Applied to BOTH sides so the displayed sequences are always comparable.
+# Groups are motivated by the user's examples (b↔w, p↔f, a↔ɔ↔o) plus
+# standard allophonic pairs that the two systems commonly disagree on.
+# ---------------------------------------------------------------------------
+_PHONEME_NORM_MAP: dict[str, str] = {
+    # Bilabial group — Allosaurus often emits w where Epitran/G2P gives b
+    'w':  'b',
+    # Labial obstruent voiceless — f and p share labial place of articulation
+    'f':  'p',
+    # Back / low vowel group (a ↔ ɑ ↔ ɔ ↔ o)
+    'a':  'ɑ',
+    'ɔ':  'ɑ',
+    'o':  'ɑ',
+    'oʊ': 'ɑ',
+    # Front mid / low vowel group (æ ↔ ɛ ↔ e ↔ eɪ)
+    'æ':  'ɛ',
+    'e':  'ɛ',
+    'eɪ': 'ɛ',
+    # High front lax / tense pair (ɪ ↔ i)
+    'ɪ':  'i',
+    # High back lax / tense pair (ʊ ↔ u)
+    'ʊ':  'u',
+    # R-coloured schwa → plain schwa
+    'ɚ':  'ə',
+}
+
+def _norm_seq(phones: list[str]) -> list[str]:
+    """Map both sides to shared canonical symbols before alignment."""
+    return [_PHONEME_NORM_MAP.get(p, p) for p in phones]
+
 def _sub_score(a: str, b: str) -> float:
     """Graded substitution cost based on phonetic feature similarity."""
     sim = _phone_similarity(a, b)
@@ -363,32 +405,69 @@ def _align(exp: list[str], spk: list[str]) -> tuple[list[str], list[str]]:
     return aligned_exp, aligned_spk
 
 
-def _score_alignment(aligned_exp: list[str], aligned_spk: list[str]) -> float:
+def _score_triphones(
+    aligned_exp: list[str],
+    aligned_spk: list[str],
+) -> tuple[float, list[str], list[str]]:
     """
-    Score an already-aligned phone pair.  Keeps NW alignment separate from
-    scoring so the NW penalties don't corrupt the final grade.
+    Triphone-based scoring with near-miss correction and extra-phoneme tolerance.
 
-    Per aligned column:
-      exp='-'          extra spoken sound — ignored (no penalty for additions)
-      spk='-'          expected phone missing — 0 credit
-      both present     _phone_similarity(e, s):
-                         exact match  → 1.0
-                         near miss    → 0.33 – 0.67  (one articulatory feature off)
-                         different    → 0.0
+    Groups expected phoneme positions (non-gap) into windows of 3 (triphones).
+    For each expected phone in a window:
+      - sim >= threshold  → correct the Heard display to expected, full credit
+      - sim < threshold   → scan ±2 adjacent gap slots (extra spoken phonemes)
+                            for a better match; if found above threshold, absorb
+                            the extra and give full credit
+      - otherwise         → partial credit equal to raw similarity
 
-    Score = sum(per-column credit) / number-of-expected-phones
-    Range: 0.0 (nothing matched) – 1.0 (everything matched exactly)
+    Extra spoken phonemes (exp='-' slots) that are not absorbed are ignored.
+
+    Returns (score, aligned_exp_unchanged, corrected_spk).
     """
-    n_expected = sum(1 for p in aligned_exp if p != '-')
+    exp_positions = [i for i, p in enumerate(aligned_exp) if p != '-']
+    corrected_spk = list(aligned_spk)
+    n_expected = len(exp_positions)
     if n_expected == 0:
-        return 0.0
-    total = sum(
-        _phone_similarity(e, s)
-        for e, s in zip(aligned_exp, aligned_spk)
-        if e != '-'          # skip extra spoken sounds
-        # s=='-' → similarity returns 0.0 implicitly since '-' not in features
-    )
-    return round(total / n_expected, 2)
+        return 0.0, aligned_exp, corrected_spk
+
+    total_credit = 0.0
+
+    for group_start in range(0, n_expected, 3):
+        group = exp_positions[group_start:group_start + 3]
+
+        for pos in group:
+            e = aligned_exp[pos]
+            s = corrected_spk[pos]
+            sim = _phone_similarity(e, s) if s != '-' else 0.0
+
+            if sim >= _TRIPHONE_CORRECTION_THRESHOLD:
+                corrected_spk[pos] = e          # fix near-miss in Heard display
+                total_credit += 1.0
+            else:
+                # Look in adjacent gap slots for a better-matching spoken phone.
+                best_neighbor: int | None = None
+                best_sim = sim
+                for offset in range(-2, 3):
+                    if offset == 0:
+                        continue
+                    nb = pos + offset
+                    if (0 <= nb < len(aligned_exp)
+                            and aligned_exp[nb] == '-'
+                            and corrected_spk[nb] != '-'):
+                        nb_sim = _phone_similarity(e, corrected_spk[nb])
+                        if nb_sim > best_sim:
+                            best_sim = nb_sim
+                            best_neighbor = nb
+
+                if best_neighbor is not None and best_sim >= _TRIPHONE_CORRECTION_THRESHOLD:
+                    corrected_spk[pos] = e
+                    corrected_spk[best_neighbor] = '-'
+                    total_credit += 1.0
+                else:
+                    total_credit += best_sim
+
+    return round(total_credit / n_expected, 2), aligned_exp, corrected_spk
+
 
 # ---------------------------------------------------------------------------
 # Epitran cache
@@ -639,10 +718,10 @@ def pronunciation_score(
     """
     wav_path = convert_audio(audio_path)
 
-    exp_phones = text_to_phones(expected_text, lang)
-    spk_phones = audio_to_phones(wav_path, lang)
+    exp_phones = _norm_seq(text_to_phones(expected_text, lang))
+    spk_phones = _norm_seq(audio_to_phones(wav_path, lang))
 
     aligned_exp, aligned_spk = _align(exp_phones, spk_phones)
-    score = _score_alignment(aligned_exp, aligned_spk)
+    score, aligned_exp, corrected_spk = _score_triphones(aligned_exp, aligned_spk)
 
-    return score, ' '.join(aligned_exp), ' '.join(aligned_spk)
+    return score, ' '.join(aligned_exp), ' '.join(corrected_spk)
