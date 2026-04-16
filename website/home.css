@@ -113,6 +113,318 @@ body {
     margin: 0 auto;
 }
 
+/* ── Rankings Section ── */
+#rankings-section {
+    margin-bottom: 2.5rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #0f0c29, #1a1040, #24243e);
+    padding: 1.6rem 2rem 2rem;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07);
+    position: relative;
+    overflow: hidden;
+}
+#rankings-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(120,80,255,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 30%, rgba(0,200,150,0.08) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.rankings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+.rankings-title-block {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+.rankings-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6));
+}
+.rankings-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+.rankings-subtitle {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+    font-weight: 300;
+}
+.rankings-total {
+    text-align: right;
+}
+.rankings-total-num {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffd740;
+    text-shadow: 0 0 20px rgba(255,215,64,0.5);
+}
+.rankings-total-label {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.5);
+}
+
+/* ── Rank Track ── */
+.rankings-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.rankings-track::-webkit-scrollbar { height: 4px; }
+.rankings-track::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+/* ── Rank filter panel ── */
+.rank-filter-panel {
+    margin-top: 1.2rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 1rem 1.2rem;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    position: relative;
+    z-index: 1;
+}
+.rank-filter-panel.rank-filter-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.rank-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+}
+.rank-filter-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.02em;
+}
+.rank-filter-title .rank-badge {
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
+}
+.rank-filter-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+}
+.rank-filter-close:hover {
+    color: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.08);
+}
+.rank-filter-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.rank-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+}
+.rank-filter-item:hover {
+    background: rgba(255,255,255,0.11);
+    transform: translateX(3px);
+}
+.rank-filter-item .rank-badge {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.35));
+}
+.rank-filter-item-info {
+    flex: 1;
+    min-width: 0;
+}
+.rank-filter-item-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rank-filter-item-lang {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 0.1rem;
+}
+.rank-filter-item-passes {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    white-space: nowrap;
+}
+.rank-filter-empty {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 0.5rem 0;
+}
+.rank-card-active {
+    background: rgba(255,255,255,0.13) !important;
+    border-color: rgba(255,255,255,0.25) !important;
+    transform: translateY(-6px) !important;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.45) !important;
+}
+
+/* ── Connector line between cards ── */
+.rank-connector {
+    flex-shrink: 0;
+    width: 24px;
+    height: 2px;
+    background: rgba(255,255,255,0.12);
+    position: relative;
+}
+.rank-connector.connector-filled {
+    background: linear-gradient(90deg, rgba(255,255,255,0.35), rgba(255,255,255,0.1));
+}
+
+/* ── Individual Rank Card ── */
+.rank-card {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 1.1rem 1rem 0.9rem;
+    border-radius: 14px;
+    width: 106px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: rankFadeIn 0.4s ease both;
+    cursor: default;
+}
+@keyframes rankFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.rank-card-unlocked {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+.rank-card-unlocked:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    background: rgba(255,255,255,0.1);
+}
+.rank-card-locked {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    opacity: 0.55;
+    filter: grayscale(0.6);
+}
+
+/* Ambient glow behind badge for unlocked ranks */
+.rank-card-glow {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    filter: blur(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+.rank-card-unlocked .rank-card-glow { opacity: 0.55; }
+.rank-card-unlocked:hover .rank-card-glow { opacity: 0.8; }
+
+.rank-glow-bronze   { background: #cd853f; }
+.rank-glow-silver   { background: #c0c0c0; }
+.rank-glow-gold     { background: #ffd740; }
+.rank-glow-platinum { background: #b0d0e8; }
+.rank-glow-diamond  { background: #4dd0e1; }
+.rank-glow-ruby     { background: #e53935; }
+.rank-glow-sapphire { background: #2979ff; }
+.rank-glow-emerald  { background: #00e676; }
+
+.rank-badge-wrap {
+    position: relative;
+    z-index: 1;
+}
+.rank-badge-wrap .rank-badge {
+    width: 46px;
+    height: 46px;
+    display: block;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+    transition: filter 0.2s, transform 0.2s;
+}
+.rank-card-unlocked:hover .rank-badge-wrap .rank-badge {
+    filter: drop-shadow(0 4px 14px rgba(0,0,0,0.6)) brightness(1.1);
+    transform: scale(1.1);
+}
+.rank-card-locked .rank-badge-wrap .rank-badge {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)) grayscale(0.5);
+}
+
+.rank-card-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.rank-card-locked .rank-card-name { color: rgba(255,255,255,0.4); }
+
+.rank-card-req {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.35);
+    font-weight: 300;
+}
+
+.rank-card-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.08);
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    min-width: 40px;
+    text-align: center;
+}
+.rank-card-locked .rank-card-count { color: rgba(255,255,255,0.25); }
+
 /* ── Section Header ── */
 .section-header {
     display: flex;
@@ -159,6 +471,26 @@ body {
 .journal-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+}
+
+.card-rank-badge {
+    position: absolute;
+    bottom: 0.6rem;
+    right: 0.7rem;
+    z-index: 2;
+    pointer-events: none;
+    line-height: 0;
+}
+.card-rank-badge .rank-badge {
+    width: 30px;
+    height: 30px;
+    display: block;
+    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.35));
+    transition: transform 0.2s, filter 0.2s;
+}
+.journal-card:hover .card-rank-badge .rank-badge {
+    transform: scale(1.12);
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) brightness(1.1);
 }
 
 /* Card date header — accent colored like the journal title bar */
@@ -646,6 +978,16 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.beginner-card .card-romanized {
+    font-size: 0.72rem;
+    color: #6366f1;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: -0.2rem;
 }
 
 .beginner-card-badge {

@@ -1154,7 +1154,19 @@ async function romanizeDiv(div, lang) {
 async function romanizePageSide(el, lang) {
     if (!CJK_LANGS.has(lang)) return;
     const divs = Array.from(el.children).filter(n => n.tagName === 'DIV');
-    for (const div of divs) await romanizeDiv(div, lang);
+    if (divs.length > 0) {
+        for (const div of divs) await romanizeDiv(div, lang);
+    } else {
+        // Plain-text content (e.g. builtin journals) — wrap in a div then romanize
+        const text = el.textContent.trim();
+        if (!text) return;
+        el.querySelectorAll('.romanized').forEach(n => n.remove());
+        const wrapper = document.createElement('div');
+        wrapper.textContent = text;
+        el.innerHTML = '';
+        el.appendChild(wrapper);
+        await romanizeDiv(wrapper, lang);
+    }
 }
 
 // Handle text changes
@@ -1285,6 +1297,7 @@ function createJournalListItem(entry) {
             <polyline points="10 9 9 9 8 9"></polyline>
         </svg>
         <span class="journal-name">${escapeHtml(entry.title)}</span>
+        ${getRankBadgeSVG(getExamLevel(entry.id), entry.id)}
         ${hasScores ? `<span class="journal-scores">
             <span class="journal-score correct-score">${totalCorrect}</span>
             <span class="journal-score missed-score">${totalMissed}</span>
@@ -1647,7 +1660,7 @@ const EXAM_SPEAK_THRESHOLD = 0.55; // pronunciation score to count as correct
 let examStartBtn, examOverlay, examQuestionScreen, examResultsScreen,
     examProgressText, examRetryChip, examQtype, examPromptText,
     examSpeakWrap, examTypeWrap, examMicBtn, examMicLabel, examSpeakFeedback,
-    examTypeInput, examFeedbackRow, examFeedbackIcon, examFeedbackMsg,
+    examTypeInput, examTypeHint, examFeedbackRow, examFeedbackIcon, examFeedbackMsg,
     examCorrectAns, examSubmitBtn, examNextBtn,
     examResultScore, examResultVerdict, examResultLevel, examExitBtn;
 
@@ -1679,6 +1692,7 @@ function initExamDOMRefs() {
     examMicLabel        = document.getElementById('exam-mic-label');
     examSpeakFeedback   = document.getElementById('exam-speak-feedback');
     examTypeInput       = document.getElementById('exam-type-input');
+    examTypeHint        = document.getElementById('exam-type-hint');
     examFeedbackRow     = document.getElementById('exam-feedback-row');
     examFeedbackIcon    = document.getElementById('exam-feedback-icon');
     examFeedbackMsg     = document.getElementById('exam-feedback-msg');
@@ -1702,6 +1716,79 @@ function setExamLevel(id, level) {
     const levels = getExamLevels();
     levels[id] = level;
     localStorage.setItem('journalExamLevels', JSON.stringify(levels));
+}
+
+// ── Rank system ──────────────────────────────────────────────────────────────
+
+const RANKS = [
+    { passes: 10, name: 'Emerald',  key: 'emerald'  },
+    { passes:  7, name: 'Sapphire', key: 'sapphire' },
+    { passes:  6, name: 'Ruby',     key: 'ruby'     },
+    { passes:  5, name: 'Diamond',  key: 'diamond'  },
+    { passes:  4, name: 'Platinum', key: 'platinum' },
+    { passes:  3, name: 'Gold',     key: 'gold'     },
+    { passes:  2, name: 'Silver',   key: 'silver'   },
+    { passes:  1, name: 'Bronze',   key: 'bronze'   },
+];
+
+function getRank(level) {
+    return RANKS.find(r => level >= r.passes) || null;
+}
+
+function getRankBadgeSVG(level, uid) {
+    const rank = getRank(level);
+    if (!rank) return '';
+    const g = `rbg-${rank.key}-${uid}`;
+    const shapes = {
+        bronze: {
+            def: `<linearGradient id="${g}" x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stop-color="#ffcc80"/><stop offset="55%" stop-color="#cd853f"/><stop offset="100%" stop-color="#7b3310"/></linearGradient>`,
+            body: `<path d="M12 2L22 6V13C22 18.5 17.5 22 12 23C6.5 22 2 18.5 2 13V6Z" fill="url(#${g})" stroke="#8b4513" stroke-width="1.3"/><text x="12" y="16.5" text-anchor="middle" font-size="8.5" font-weight="bold" fill="rgba(255,255,255,0.75)" font-family="serif">B</text>`
+        },
+        silver: {
+            def: `<linearGradient id="${g}" x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stop-color="#fafafa"/><stop offset="50%" stop-color="#c0c0c0"/><stop offset="100%" stop-color="#6e6e6e"/></linearGradient>`,
+            body: `<polygon points="12,2.5 21.5,7.75 21.5,16.25 12,21.5 2.5,16.25 2.5,7.75" fill="url(#${g})" stroke="#9e9e9e" stroke-width="1.3"/><polygon points="12,5.5 18.5,9.25 18.5,14.75 12,18.5 5.5,14.75 5.5,9.25" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/>`
+        },
+        gold: {
+            def: `<radialGradient id="${g}" cx="45%" cy="35%"><stop offset="0%" stop-color="#fffde7"/><stop offset="45%" stop-color="#ffd740"/><stop offset="100%" stop-color="#e65100"/></radialGradient>`,
+            body: `<polygon points="12,2 14.35,8.76 21.51,8.91 15.8,13.24 17.88,20.09 12,16 6.12,20.09 8.2,13.24 2.49,8.91 9.65,8.76" fill="url(#${g})" stroke="#f57f17" stroke-width="1.3"/>`
+        },
+        platinum: {
+            def: `<linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="40%" stop-color="#dce8f0"/><stop offset="100%" stop-color="#90a4ae"/></linearGradient>`,
+            body: `<polygon points="12,2 22,12 12,22 2,12" fill="url(#${g})" stroke="#90a4ae" stroke-width="1.5"/><polygon points="12,5.5 18.5,12 12,18.5 5.5,12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="0.9"/><polygon points="12,8.5 15.5,12 12,15.5 8.5,12" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.7"/>`
+        },
+        diamond: {
+            def: `<radialGradient id="${g}" cx="38%" cy="28%"><stop offset="0%" stop-color="#e0ffff"/><stop offset="40%" stop-color="#4dd0e1"/><stop offset="100%" stop-color="#00838f"/></radialGradient>`,
+            body: `<polygon points="8,2 16,2 22,10 12,22 2,10" fill="url(#${g})" stroke="#00acc1" stroke-width="1.3"/><line x1="8" y1="2" x2="12" y2="10" stroke="rgba(255,255,255,0.55)" stroke-width="0.9"/><line x1="16" y1="2" x2="12" y2="10" stroke="rgba(255,255,255,0.55)" stroke-width="0.9"/><line x1="2" y1="10" x2="22" y2="10" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/>`
+        },
+        ruby: {
+            def: `<radialGradient id="${g}" cx="38%" cy="32%"><stop offset="0%" stop-color="#ff8a80"/><stop offset="45%" stop-color="#e53935"/><stop offset="100%" stop-color="#6a0010"/></radialGradient>`,
+            body: `<polygon points="12,2 19.07,4.93 22,12 19.07,19.07 12,22 4.93,19.07 2,12 4.93,4.93" fill="url(#${g})" stroke="#b71c1c" stroke-width="1.3"/><polygon points="12,5 17.2,7.2 19,12 17.2,16.8 12,19 6.8,16.8 5,12 6.8,7.2" fill="none" stroke="rgba(255,200,200,0.45)" stroke-width="0.8"/>`
+        },
+        sapphire: {
+            def: `<radialGradient id="${g}" cx="38%" cy="28%"><stop offset="0%" stop-color="#b3d4ff"/><stop offset="45%" stop-color="#2979ff"/><stop offset="100%" stop-color="#0d1b6e"/></radialGradient>`,
+            body: `<polygon points="12,2 14.5,7.67 20.66,7 17,12 20.66,17 14.5,16.33 12,22 9.5,16.33 3.34,17 7,12 3.34,7 9.5,7.67" fill="url(#${g})" stroke="#1565c0" stroke-width="1.3"/>`
+        },
+        emerald: {
+            def: `<radialGradient id="${g}" cx="38%" cy="28%"><stop offset="0%" stop-color="#b9fbc0"/><stop offset="40%" stop-color="#00e676"/><stop offset="100%" stop-color="#00600f"/></radialGradient>`,
+            body: `<path d="M2,22 L2,11 L7,16 L12,4 L17,16 L22,11 L22,22 Z" fill="url(#${g})" stroke="#00600f" stroke-width="1.3"/><rect x="2" y="20" width="20" height="2.5" rx="1" fill="rgba(0,96,15,0.55)"/><circle cx="7" cy="19" r="1.2" fill="rgba(255,255,255,0.4)"/><circle cx="12" cy="19" r="1.2" fill="rgba(255,255,255,0.4)"/><circle cx="17" cy="19" r="1.2" fill="rgba(255,255,255,0.4)"/>`
+        },
+    };
+    const s = shapes[rank.key];
+    return `<svg class="rank-badge rank-${rank.key}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="${rank.name} rank" title="${rank.name}"><defs>${s.def}</defs>${s.body}</svg>`;
+}
+
+function updateJournalNavRank() {
+    const el = document.getElementById('journal-nav-rank');
+    if (!el) return;
+    const jid   = journalState.currentJournalId;
+    const level = jid ? getExamLevel(jid) : 0;
+    const rank  = getRank(level);
+    if (rank) {
+        el.innerHTML  = getRankBadgeSVG(level, 'nav') + `<span class="journal-nav-rank-name">${rank.name}</span>`;
+        el.title      = `${rank.name} — ${level} exam ${level === 1 ? 'pass' : 'passes'}`;
+    } else {
+        el.innerHTML  = '';
+    }
 }
 
 // ── Question generation ───────────────────────────────────────────────────────
@@ -1780,7 +1867,7 @@ const EXAM_QTYPE_LABELS = {
     'type-source':  'Type the original',
 };
 
-function showExamQuestion() {
+async function showExamQuestion() {
     const q     = examState.questions[examState.currentIndex];
     const total = examState.questions.length;
     const num   = examState.currentIndex + 1;
@@ -1788,7 +1875,6 @@ function showExamQuestion() {
     examProgressText.textContent = `Question ${num} of ${total}`;
     examRetryChip.hidden         = !q.isRetry;
     examQtype.textContent        = EXAM_QTYPE_LABELS[q.type];
-    examPromptText.textContent   = q.prompt;
     examState.answered           = false;
 
     // Show correct input mode
@@ -1800,15 +1886,27 @@ function showExamQuestion() {
     examSpeakFeedback.textContent = '';
     examSpeakFeedback.className   = 'speak-result';
     examTypeInput.value           = '';
+    examTypeHint.textContent      = '';
     examFeedbackRow.hidden        = true;
     examFeedbackIcon.textContent  = '';
     examFeedbackMsg.textContent   = '';
-    examCorrectAns.textContent    = '';
+    examCorrectAns.innerHTML      = '';
     examSubmitBtn.hidden          = false;
     examSubmitBtn.disabled        = false;
     examNextBtn.hidden            = true;
     examMicLabel.textContent      = 'Speak';
     examMicBtn.classList.remove('recording');
+
+    // Prompt text + optional romanization
+    examPromptText.innerHTML = escapeHtml(q.prompt);
+    if (CJK_LANGS.has(q.promptLang)) {
+        fetchRomanizedSafe(q.prompt, q.promptLang).then(rom => {
+            if (rom) examPromptText.innerHTML =
+                `${escapeHtml(q.prompt)}<span class="exam-romanized">${escapeHtml(rom)}</span>`;
+        });
+    }
+
+    examTypeHint.textContent = '';
     examMicBtn.disabled           = false;
     examState.isRecording         = false;
 
@@ -1820,23 +1918,44 @@ function showExamQuestion() {
 async function submitExamAnswer() {
     if (examState.answered) return;
     const q = examState.questions[examState.currentIndex];
-    if (q.type.startsWith('speak-')) {
-        // speak answers are submitted via the mic button flow
-        return;
-    }
+    if (q.type.startsWith('speak-')) return;
     const input = examTypeInput.value.trim();
     if (!input) return;
-    const correct = examTypingCorrect(input, q.expected);
+
+    let correct = examTypingCorrect(input, q.expected);
+
+    // For CJK, also accept romanized input (e.g. "konnichiwa" for "こんにちは")
+    if (!correct && ['ja', 'ko', 'zh'].includes(q.expectedLang)) {
+        const romanized = await fetchRomanizedSafe(q.expected, q.expectedLang);
+        if (romanized) correct = examTypingCorrect(input, romanized);
+    }
+
     resolveExamAnswer(correct, q);
 }
 
+function stripDiacritics(s) {
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function examTypingCorrect(input, expected) {
-    const norm = s => s.toLowerCase().trim()
-        .replace(/[.,!?¿¡"""]/g, '').replace(/\s+/g, ' ');
+    const norm = s => stripDiacritics(s.toLowerCase().trim()
+        .replace(/[.,!?¿¡"""«»]/g, '').replace(/\s+/g, ' '));
     const a = norm(input), b = norm(expected);
     if (a === b) return true;
-    // Allow small typos: Levenshtein distance ≤ 15% of expected length
-    return levenshtein(a, b) / Math.max(b.length, 1) <= 0.15;
+    // Allow ~25% typo tolerance (up from 15%) so minor misspellings pass
+    return levenshtein(a, b) / Math.max(b.length, 1) <= 0.25;
+}
+
+async function fetchRomanizedSafe(text, lang) {
+    try {
+        const fd = new FormData();
+        fd.append('text', text);
+        fd.append('lang', lang);
+        const res = await fetch(`${SERVER_URL}/romanize`, { method: 'POST', body: fd });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.romanized || null;
+    } catch { return null; }
 }
 
 function levenshtein(a, b) {
@@ -1858,16 +1977,23 @@ function resolveExamAnswer(correct, q) {
     } else {
         if (correct) examState.retryCorrect++;
     }
-    showExamFeedback(correct, q.expected);
+    showExamFeedback(correct, q);
 }
 
-function showExamFeedback(correct, correctAnswer) {
+function showExamFeedback(correct, q) {
     examFeedbackRow.hidden       = false;
     examFeedbackIcon.textContent = correct ? '✅' : '❌';
     examFeedbackMsg.textContent  = correct ? 'Correct!' : 'Incorrect';
-    examCorrectAns.textContent   = correct ? '' : `Answer: ${correctAnswer}`;
+    examCorrectAns.innerHTML     = `Answer: ${escapeHtml(q.expected)}`;
     examSubmitBtn.hidden         = true;
     examNextBtn.hidden           = false;
+
+    if (CJK_LANGS.has(q.expectedLang)) {
+        fetchRomanizedSafe(q.expected, q.expectedLang).then(rom => {
+            if (rom) examCorrectAns.innerHTML =
+                `Answer: ${escapeHtml(q.expected)}<span class="exam-romanized">${escapeHtml(rom)}</span>`;
+        });
+    }
 }
 
 function advanceExam() {
@@ -1899,6 +2025,7 @@ function showExamResults() {
     if (passed && jid) {
         newLevel++;
         setExamLevel(jid, newLevel);
+        updateJournalNavRank();
     }
 
     examQuestionScreen.hidden = true;
@@ -1907,9 +2034,16 @@ function showExamResults() {
     examResultScore.textContent   = `${correct} / ${total} — ${Math.round(pct * 100)}%`;
     examResultVerdict.textContent = passed ? '🎉 Passed!' : '😔 Not quite — keep practising!';
     examResultVerdict.className   = `exam-result-verdict ${passed ? 'passed' : 'failed'}`;
-    examResultLevel.textContent   = jid
-        ? (passed ? `⬆ Level Up! Now Level ${newLevel}` : `Level ${newLevel}`)
-        : '';
+    if (jid) {
+        const rank    = getRank(newLevel);
+        const badge   = getRankBadgeSVG(newLevel, 'result');
+        const rankTxt = rank ? rank.name : '';
+        const levelUp = passed && getRank(newLevel) !== getRank(newLevel - 1);
+        examResultLevel.innerHTML = badge
+            + `<span class="exam-rank-label">${levelUp ? '⬆ ' : ''}${rankTxt || `Pass ${newLevel}`}</span>`;
+    } else {
+        examResultLevel.innerHTML = '';
+    }
 }
 
 // ── Exam speak recording (reuses speakState hardware) ─────────────────────────
@@ -2015,7 +2149,9 @@ function initExamListeners() {
         else                       startExamRecording();
     });
     examTypeInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') submitExamAnswer();
+        if (e.key !== 'Enter') return;
+        if (!examNextBtn.hidden) advanceExam();
+        else submitExamAnswer();
     });
     examSubmitBtn.addEventListener('click', submitExamAnswer);
     examNextBtn.addEventListener('click',   advanceExam);
@@ -2069,6 +2205,7 @@ function openJournal(journalId) {
     renderCurrentPage(); // restores per-page languages and updates UI
 
     updateScoreDisplay();
+    updateJournalNavRank();
 
     window.scrollTo(0, 0);
 }

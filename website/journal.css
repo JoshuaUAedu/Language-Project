@@ -881,6 +881,9 @@ body {
     color: var(--text-color);
     white-space: pre-wrap;
     word-break: break-word;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
 }
 
 .exam-input-area {
@@ -895,8 +898,10 @@ body {
     align-items: center;
     gap: 0.5rem;
 }
+.exam-speak-wrap[hidden] { display: none; }
 
 .exam-type-wrap { display: flex; }
+.exam-type-wrap[hidden] { display: none; }
 
 .exam-type-input {
     width: 100%;
@@ -933,6 +938,25 @@ body {
     font-size: 0.85rem;
     color: var(--gray-text);
     font-style: italic;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.exam-romanized {
+    display: block;
+    font-size: 0.82rem;
+    color: #7c3aed;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.exam-type-hint {
+    font-size: 0.75rem;
+    color: #7c3aed;
+    font-style: italic;
+    padding: 0.25rem 0.1rem 0;
+    min-height: 1rem;
 }
 
 .exam-btn-row {
@@ -995,10 +1019,29 @@ body {
 .exam-result-verdict.failed { color: #dc2626; }
 
 .exam-result-level {
-    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2rem;
+}
+.exam-result-level .rank-badge {
+    width: 52px;
+    height: 52px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+}
+.exam-rank-label {
+    font-size: 1.1rem;
     font-weight: 700;
     color: #7c3aed;
-    min-height: 1.4em;
+}
+
+/* Rank badge — sidebar */
+.journal-item .rank-badge {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
 }
 
 /* Pages */
@@ -1240,6 +1283,31 @@ body {
     padding: 0.6rem 1rem;
     border-top: 1px solid var(--border-color);
     background: var(--page-color);
+    position: relative;
+}
+
+.journal-nav-rank {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    pointer-events: none;
+}
+.journal-nav-rank .rank-badge {
+    width: 26px;
+    height: 26px;
+    display: block;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+}
+.journal-nav-rank-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--gray-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .notebook.study-mode .journal-page-nav {

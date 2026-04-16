@@ -13,11 +13,19 @@ from pypinyin import pinyin, Style
 from hangul_romanize import Transliter
 from hangul_romanize.rule import academic
 
+_JA_CORRECTIONS = {
+    'konnichiha': 'konnichiwa',
+    'konbanha':   'konbanwa',
+}
+
 def _romanize(text: str, lang: str) -> str:
     if lang == 'ja':
         kks = kakasi()
         result = kks.convert(text)
-        return ' '.join(x['hepburn'] for x in result if x['hepburn'])
+        rom = ' '.join(x['hepburn'] for x in result if x['hepburn'])
+        for wrong, right in _JA_CORRECTIONS.items():
+            rom = rom.replace(wrong, right)
+        return rom
     if lang == 'ko':
         return Transliter(academic).translit(text)
     if lang == 'zh':

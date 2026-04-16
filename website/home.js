@@ -1,3 +1,5 @@
+const SERVER_URL = `http://${GPU_IP}:8000`;
+
 const languageNames = {
     en: 'English', es: 'Spanish', fr: 'French', de: 'German',
     zh: 'Chinese', ja: 'Japanese', ko: 'Korean',
@@ -157,6 +159,46 @@ function getFolderedIds() {
     return new Set(getFolders().flatMap(f => f.journalIds));
 }
 
+function getExamLevel(id) {
+    try { return (JSON.parse(localStorage.getItem('journalExamLevels')) || {})[id] || 0; }
+    catch { return 0; }
+}
+
+// ── Rank system ───────────────────────────────────────────────────────────────
+
+const RANKS = [
+    { passes: 10, name: 'Emerald',  key: 'emerald'  },
+    { passes:  7, name: 'Sapphire', key: 'sapphire' },
+    { passes:  6, name: 'Ruby',     key: 'ruby'     },
+    { passes:  5, name: 'Diamond',  key: 'diamond'  },
+    { passes:  4, name: 'Platinum', key: 'platinum' },
+    { passes:  3, name: 'Gold',     key: 'gold'     },
+    { passes:  2, name: 'Silver',   key: 'silver'   },
+    { passes:  1, name: 'Bronze',   key: 'bronze'   },
+];
+
+function getRank(level) {
+    return RANKS.find(r => level >= r.passes) || null;
+}
+
+function getRankBadgeSVG(level, uid) {
+    const rank = getRank(level);
+    if (!rank) return '';
+    const g = `rbg-${rank.key}-${uid}`;
+    const shapes = {
+        bronze:   { def: `<linearGradient id="${g}" x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stop-color="#ffcc80"/><stop offset="55%" stop-color="#cd853f"/><stop offset="100%" stop-color="#7b3310"/></linearGradient>`, body: `<path d="M12 2L22 6V13C22 18.5 17.5 22 12 23C6.5 22 2 18.5 2 13V6Z" fill="url(#${g})" stroke="#8b4513" stroke-width="1.3"/><text x="12" y="16.5" text-anchor="middle" font-size="8.5" font-weight="bold" fill="rgba(255,255,255,0.75)" font-family="serif">B</text>` },
+        silver:   { def: `<linearGradient id="${g}" x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stop-color="#fafafa"/><stop offset="50%" stop-color="#c0c0c0"/><stop offset="100%" stop-color="#6e6e6e"/></linearGradient>`, body: `<polygon points="12,2.5 21.5,7.75 21.5,16.25 12,21.5 2.5,16.25 2.5,7.75" fill="url(#${g})" stroke="#9e9e9e" stroke-width="1.3"/><polygon points="12,5.5 18.5,9.25 18.5,14.75 12,18.5 5.5,14.75 5.5,9.25" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/>` },
+        gold:     { def: `<radialGradient id="${g}" cx="45%" cy="35%"><stop offset="0%" stop-color="#fffde7"/><stop offset="45%" stop-color="#ffd740"/><stop offset="100%" stop-color="#e65100"/></radialGradient>`, body: `<polygon points="12,2 14.35,8.76 21.51,8.91 15.8,13.24 17.88,20.09 12,16 6.12,20.09 8.2,13.24 2.49,8.91 9.65,8.76" fill="url(#${g})" stroke="#f57f17" stroke-width="1.3"/>` },
+        platinum: { def: `<linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="40%" stop-color="#dce8f0"/><stop offset="100%" stop-color="#90a4ae"/></linearGradient>`, body: `<polygon points="12,2 22,12 12,22 2,12" fill="url(#${g})" stroke="#90a4ae" stroke-width="1.5"/><polygon points="12,5.5 18.5,12 12,18.5 5.5,12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="0.9"/><polygon points="12,8.5 15.5,12 12,15.5 8.5,12" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.7"/>` },
+        diamond:  { def: `<radialGradient id="${g}" cx="38%" cy="28%"><stop offset="0%" stop-color="#e0ffff"/><stop offset="40%" stop-color="#4dd0e1"/><stop offset="100%" stop-color="#00838f"/></radialGradient>`, body: `<polygon points="8,2 16,2 22,10 12,22 2,10" fill="url(#${g})" stroke="#00acc1" stroke-width="1.3"/><line x1="8" y1="2" x2="12" y2="10" stroke="rgba(255,255,255,0.55)" stroke-width="0.9"/><line x1="16" y1="2" x2="12" y2="10" stroke="rgba(255,255,255,0.55)" stroke-width="0.9"/><line x1="2" y1="10" x2="22" y2="10" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/>` },
+        ruby:     { def: `<radialGradient id="${g}" cx="38%" cy="32%"><stop offset="0%" stop-color="#ff8a80"/><stop offset="45%" stop-color="#e53935"/><stop offset="100%" stop-color="#6a0010"/></radialGradient>`, body: `<polygon points="12,2 19.07,4.93 22,12 19.07,19.07 12,22 4.93,19.07 2,12 4.93,4.93" fill="url(#${g})" stroke="#b71c1c" stroke-width="1.3"/><polygon points="12,5 17.2,7.2 19,12 17.2,16.8 12,19 6.8,16.8 5,12 6.8,7.2" fill="none" stroke="rgba(255,200,200,0.45)" stroke-width="0.8"/>` },
+        sapphire: { def: `<radialGradient id="${g}" cx="38%" cy="28%"><stop offset="0%" stop-color="#b3d4ff"/><stop offset="45%" stop-color="#2979ff"/><stop offset="100%" stop-color="#0d1b6e"/></radialGradient>`, body: `<polygon points="12,2 14.5,7.67 20.66,7 17,12 20.66,17 14.5,16.33 12,22 9.5,16.33 3.34,17 7,12 3.34,7 9.5,7.67" fill="url(#${g})" stroke="#1565c0" stroke-width="1.3"/>` },
+        emerald:  { def: `<radialGradient id="${g}" cx="38%" cy="28%"><stop offset="0%" stop-color="#b9fbc0"/><stop offset="40%" stop-color="#00e676"/><stop offset="100%" stop-color="#00600f"/></radialGradient>`, body: `<path d="M2,22 L2,11 L7,16 L12,4 L17,16 L22,11 L22,22 Z" fill="url(#${g})" stroke="#00600f" stroke-width="1.3"/><rect x="2" y="20" width="20" height="2.5" rx="1" fill="rgba(0,96,15,0.55)"/><circle cx="7" cy="19" r="1.2" fill="rgba(255,255,255,0.4)"/><circle cx="12" cy="19" r="1.2" fill="rgba(255,255,255,0.4)"/><circle cx="17" cy="19" r="1.2" fill="rgba(255,255,255,0.4)"/>` },
+    };
+    const s = shapes[rank.key];
+    return `<svg class="rank-badge rank-${rank.key}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="${rank.name} rank" title="${rank.name}"><defs>${s.def}</defs>${s.body}</svg>`;
+}
+
 // ── Folder CRUD ───────────────────────────────────────────────────────────────
 
 function createFolder(name) {
@@ -196,9 +238,123 @@ function removeJournalFromFolder(journalId) {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function render() {
+    renderRankings();
     renderGrid();
     renderBeginnerPhrases();
     renderFolders();
+}
+
+function renderRankings() {
+    const track = document.getElementById('rankings-track');
+    const totalEl = document.getElementById('rankings-total');
+    if (!track) return;
+
+    // Tally pass counts across all journals (builtins have no exam levels)
+    let levels = {};
+    try { levels = JSON.parse(localStorage.getItem('journalExamLevels')) || {}; } catch {}
+    const allPasses = Object.values(levels);
+    const totalPasses = allPasses.reduce((s, n) => s + n, 0);
+    const highestLevel = allPasses.length ? Math.max(...allPasses) : 0;
+
+    // For each rank tier, count journals at EXACTLY this rank (not passed beyond it)
+    const rankCounts = RANKS.map(r => ({
+        ...r,
+        count: allPasses.filter(l => getRank(l)?.key === r.key).length,
+        unlocked: highestLevel >= r.passes,
+    }));
+
+    // Total display
+    totalEl.innerHTML = totalPasses > 0
+        ? `<span class="rankings-total-num">${totalPasses}</span><span class="rankings-total-label"> total exam ${totalPasses === 1 ? 'pass' : 'passes'}</span>`
+        : `<span class="rankings-total-label">Complete exams to earn ranks</span>`;
+
+    // Render rank cards in reverse (Bronze → Emerald = left → right)
+    track.innerHTML = '';
+    const reversed = [...rankCounts].reverse();
+    reversed.forEach((r, idx) => {
+        const card = document.createElement('div');
+        card.className = `rank-card ${r.unlocked ? 'rank-card-unlocked' : 'rank-card-locked'}`;
+        card.style.animationDelay = `${idx * 0.06}s`;
+
+        const badgeSVG = getRankBadgeSVG(r.passes, `track-${r.key}`);
+        // Connector is filled only if the NEXT (higher) rank is also unlocked
+        const nextUnlocked = idx < reversed.length - 1 && reversed[idx + 1].unlocked;
+        const connector = idx < reversed.length - 1
+            ? `<div class="rank-connector ${nextUnlocked ? 'connector-filled' : ''}"></div>` : '';
+
+        card.innerHTML = `
+            <div class="rank-card-glow rank-glow-${r.key}"></div>
+            <div class="rank-badge-wrap">${badgeSVG}</div>
+            <div class="rank-card-name">${r.name}</div>
+            <div class="rank-card-req">${r.passes === 1 ? '1 pass' : `${r.passes} passes`}</div>
+            <div class="rank-card-count">${r.count > 0 ? `${r.count} journal${r.count > 1 ? 's' : ''}` : r.unlocked ? '✓' : '—'}</div>
+        `;
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => openRankFilter(r, card));
+        track.appendChild(card);
+        if (connector) track.insertAdjacentHTML('beforeend', connector);
+    });  // end reversed.forEach
+
+    document.getElementById('rank-filter-close').addEventListener('click', closeRankFilter);
+}
+
+let _activeRankCard = null;
+
+function openRankFilter(rank, cardEl) {
+    // Toggle off if clicking the same rank again
+    if (_activeRankCard === cardEl) { closeRankFilter(); return; }
+
+    // Deselect previous
+    if (_activeRankCard) _activeRankCard.classList.remove('rank-card-active');
+    _activeRankCard = cardEl;
+    cardEl.classList.add('rank-card-active');
+
+    const panel     = document.getElementById('rank-filter-panel');
+    const titleEl   = document.getElementById('rank-filter-title');
+    const grid      = document.getElementById('rank-filter-grid');
+    const emptyEl   = document.getElementById('rank-filter-empty');
+
+    // Find journals (user + builtins) whose current rank exactly matches this tier
+    const entries   = [...getEntries(), ...BUILTIN_JOURNALS];
+    const matches   = entries.filter(e => getRank(getExamLevel(e.id))?.key === rank.key);
+
+    titleEl.innerHTML = getRankBadgeSVG(rank.passes, `filter-${rank.key}`)
+        + `<span>${rank.name} Journals</span>`;
+
+    grid.innerHTML = '';
+    matches.forEach(entry => {
+        const item = document.createElement('div');
+        item.className = 'rank-filter-item';
+        const leftLang  = languageNames[entry.leftLanguage]  || entry.leftLanguage  || 'English';
+        const rightLang = languageNames[entry.rightLanguage] || entry.rightLanguage || 'Spanish';
+        const level     = getExamLevel(entry.id);
+        item.innerHTML = `
+            ${getRankBadgeSVG(level, `fi-${entry.id}`)}
+            <div class="rank-filter-item-info">
+                <div class="rank-filter-item-title">${escapeHtml(entry.title || 'Untitled Journal')}</div>
+                <div class="rank-filter-item-lang">${escapeHtml(leftLang)} → ${escapeHtml(rightLang)}</div>
+            </div>
+            <div class="rank-filter-item-passes">${level} pass${level === 1 ? '' : 'es'}</div>
+        `;
+        item.addEventListener('click', () => {
+            sessionStorage.setItem('openJournalId', entry.id);
+            window.location.href = 'journal.html';
+        });
+        grid.appendChild(item);
+    });
+
+    emptyEl.hidden = matches.length > 0;
+    panel.hidden   = false;
+    // Animate in
+    panel.classList.remove('rank-filter-visible');
+    requestAnimationFrame(() => panel.classList.add('rank-filter-visible'));
+}
+
+function closeRankFilter() {
+    if (_activeRankCard) { _activeRankCard.classList.remove('rank-card-active'); _activeRankCard = null; }
+    const panel = document.getElementById('rank-filter-panel');
+    panel.classList.remove('rank-filter-visible');
+    panel.addEventListener('transitionend', () => { panel.hidden = true; }, { once: true });
 }
 
 function renderBeginnerPhrases() {
@@ -210,6 +366,8 @@ function renderBeginnerPhrases() {
         card.className = 'journal-card beginner-card';
         const langName = languageNames[entry.rightLanguage] || entry.rightLanguage;
         const preview  = entry.pages.map(p => p.rightText).join(' · ');
+        const isCJK    = ['zh', 'ja', 'ko'].includes(entry.rightLanguage);
+
         card.innerHTML = `
             <div class="beginner-card-star" aria-label="Beginner phrase set">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="#f59e0b" stroke="#d97706" stroke-width="1">
@@ -220,6 +378,7 @@ function renderBeginnerPhrases() {
             <div class="card-body">
                 <div class="card-title">${escapeHtml(entry.title)}</div>
                 <div class="card-preview">${escapeHtml(preview)}</div>
+                ${isCJK ? `<div class="card-preview card-romanized" data-lang="${entry.rightLanguage}"></div>` : ''}
             </div>
             <div class="beginner-card-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
@@ -229,12 +388,33 @@ function renderBeginnerPhrases() {
                 Read-only
             </div>
         `;
+
         card.addEventListener('click', () => {
             sessionStorage.setItem('openJournalId', entry.id);
             window.location.href = 'journal.html';
         });
         grid.appendChild(card);
+
+        // Async: fetch romanization for CJK cards after render
+        if (isCJK) {
+            const romEl = card.querySelector('.card-romanized');
+            fetchBeginnerRomanized(preview, entry.rightLanguage).then(rom => {
+                if (rom && romEl) romEl.textContent = rom;
+            });
+        }
     });
+}
+
+async function fetchBeginnerRomanized(text, lang) {
+    try {
+        const fd = new FormData();
+        fd.append('text', text);
+        fd.append('lang', lang);
+        const res = await fetch(`${SERVER_URL}/romanize`, { method: 'POST', body: fd });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.romanized || null;
+    } catch { return null; }
 }
 
 function renderGrid() {
@@ -290,6 +470,7 @@ function buildCard(entry, sourceFolderId) {
     const missed    = entry.missedCount  || 0;
     const correct   = entry.correctCount || 0;
     const hasScores = missed > 0 || correct > 0;
+    const rankBadge = getRankBadgeSVG(getExamLevel(entry.id), entry.id);
 
     const card = document.createElement('div');
     card.className     = 'journal-card';
@@ -324,6 +505,7 @@ function buildCard(entry, sourceFolderId) {
                 <span class="score-pill missed">✗ ${missed}</span>
             </div>` : ''}
         </div>
+        ${rankBadge ? `<div class="card-rank-badge">${rankBadge}</div>` : ''}
     `;
 
     card.addEventListener('click', e => {

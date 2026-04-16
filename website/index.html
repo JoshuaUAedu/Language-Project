@@ -36,6 +36,29 @@
 
     <main class="main-container">
 
+        <!-- Rankings Banner -->
+        <section id="rankings-section">
+            <div class="rankings-header">
+                <div class="rankings-title-block">
+                    <span class="rankings-icon">🏆</span>
+                    <div>
+                        <h2 class="rankings-title">Your Rankings</h2>
+                        <p class="rankings-subtitle">Pass exams to earn ranks across your journals</p>
+                    </div>
+                </div>
+                <div class="rankings-total" id="rankings-total"></div>
+            </div>
+            <div class="rankings-track" id="rankings-track"></div>
+            <div class="rank-filter-panel" id="rank-filter-panel" hidden>
+                <div class="rank-filter-header">
+                    <div class="rank-filter-title" id="rank-filter-title"></div>
+                    <button class="rank-filter-close" id="rank-filter-close" aria-label="Close">&#x2715;</button>
+                </div>
+                <div class="rank-filter-grid" id="rank-filter-grid"></div>
+                <p class="rank-filter-empty" id="rank-filter-empty" hidden>No journals at this rank yet.</p>
+            </div>
+        </section>
+
         <!-- Recent Journals -->
         <section id="recent-section">
             <div class="section-header">
