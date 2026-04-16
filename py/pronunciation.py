@@ -2,6 +2,12 @@ import re
 import unicodedata
 import librosa
 import soundfile as sf
+import nltk
+for _r in ('averaged_perceptron_tagger_eng', 'averaged_perceptron_tagger', 'cmudict'):
+    try:
+        nltk.data.find(f'taggers/{_r}') if 'tagger' in _r else nltk.data.find(f'corpora/{_r}')
+    except LookupError:
+        nltk.download(_r, quiet=True)
 import epitran
 from g2p_en import G2p
 from allosaurus.app import read_recognizer
