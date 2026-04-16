@@ -3,6 +3,112 @@ const languageNames = {
     zh: 'Chinese', ja: 'Japanese', ko: 'Korean',
 };
 
+const _BEGINNER_PHRASE_PAGES = {
+    es: [
+        { left: 'hello',                  right: 'hola' },
+        { left: 'goodbye',                right: 'adiós' },
+        { left: 'yes',                    right: 'sí' },
+        { left: 'no',                     right: 'no' },
+        { left: 'please',                 right: 'por favor' },
+        { left: 'thank you',              right: 'gracias' },
+        { left: 'excuse me',              right: 'con permiso' },
+        { left: 'I do not understand',    right: 'no entiendo' },
+        { left: 'do you speak english?',  right: '¿hablas inglés?' },
+        { left: 'are you okay?',          right: '¿estás bien?' },
+        { left: 'what is the price?',     right: '¿cuánto cuesta?' },
+        { left: 'where is the bathroom?', right: '¿dónde está el baño?' },
+        { left: 'that was great!',        right: '¡estuvo genial!' },
+    ],
+    fr: [
+        { left: 'hello',                  right: 'bonjour' },
+        { left: 'goodbye',                right: 'au revoir' },
+        { left: 'yes',                    right: 'oui' },
+        { left: 'no',                     right: 'non' },
+        { left: 'please',                 right: "s'il vous plaît" },
+        { left: 'thank you',              right: 'merci' },
+        { left: 'excuse me',              right: 'excusez-moi' },
+        { left: 'I do not understand',    right: 'je ne comprends pas' },
+        { left: 'do you speak english?',  right: 'parlez-vous anglais?' },
+        { left: 'are you okay?',          right: 'ça va?' },
+        { left: 'what is the price?',     right: 'quel est le prix?' },
+        { left: 'where is the bathroom?', right: 'où sont les toilettes?' },
+        { left: 'that was great!',        right: "c'était super!" },
+    ],
+    de: [
+        { left: 'hello',                  right: 'hallo' },
+        { left: 'goodbye',                right: 'auf Wiedersehen' },
+        { left: 'yes',                    right: 'ja' },
+        { left: 'no',                     right: 'nein' },
+        { left: 'please',                 right: 'bitte' },
+        { left: 'thank you',              right: 'danke' },
+        { left: 'excuse me',              right: 'entschuldigung' },
+        { left: 'I do not understand',    right: 'ich verstehe nicht' },
+        { left: 'do you speak english?',  right: 'sprechen Sie Englisch?' },
+        { left: 'are you okay?',          right: 'geht es dir gut?' },
+        { left: 'what is the price?',     right: 'was kostet das?' },
+        { left: 'where is the bathroom?', right: 'wo ist die Toilette?' },
+        { left: 'that was great!',        right: 'das war toll!' },
+    ],
+    zh: [
+        { left: 'hello',                  right: '你好' },
+        { left: 'goodbye',                right: '再见' },
+        { left: 'yes',                    right: '是' },
+        { left: 'no',                     right: '不' },
+        { left: 'please',                 right: '请' },
+        { left: 'thank you',              right: '谢谢' },
+        { left: 'excuse me',              right: '对不起' },
+        { left: 'I do not understand',    right: '我不明白' },
+        { left: 'do you speak english?',  right: '你说英语吗？' },
+        { left: 'are you okay?',          right: '你还好吗？' },
+        { left: 'what is the price?',     right: '价格是多少？' },
+        { left: 'where is the bathroom?', right: '洗手间在哪里？' },
+        { left: 'that was great!',        right: '太棒了！' },
+    ],
+    ja: [
+        { left: 'hello',                  right: 'こんにちは' },
+        { left: 'goodbye',                right: 'さようなら' },
+        { left: 'yes',                    right: 'はい' },
+        { left: 'no',                     right: 'いいえ' },
+        { left: 'please',                 right: 'おねがいします' },
+        { left: 'thank you',              right: 'ありがとう' },
+        { left: 'excuse me',              right: 'すみません' },
+        { left: 'I do not understand',    right: 'わかりません' },
+        { left: 'do you speak english?',  right: '英語を話せますか？' },
+        { left: 'are you okay?',          right: '大丈夫ですか？' },
+        { left: 'what is the price?',     right: 'いくらですか？' },
+        { left: 'where is the bathroom?', right: 'トイレはどこですか？' },
+        { left: 'that was great!',        right: '素晴らしかったです！' },
+    ],
+    ko: [
+        { left: 'hello',                  right: '안녕하세요' },
+        { left: 'goodbye',                right: '안녕히 가세요' },
+        { left: 'yes',                    right: '예' },
+        { left: 'no',                     right: '아니요' },
+        { left: 'please',                 right: '제발' },
+        { left: 'thank you',              right: '감사합니다' },
+        { left: 'excuse me',              right: '실례합니다' },
+        { left: 'I do not understand',    right: '이해하지 못합니다' },
+        { left: 'do you speak english?',  right: '영어를 할 수 있나요?' },
+        { left: 'are you okay?',          right: '괜찮으세요?' },
+        { left: 'what is the price?',     right: '가격이 얼마예요?' },
+        { left: 'where is the bathroom?', right: '화장실이 어디예요?' },
+        { left: 'that was great!',        right: '정말 좋았어요!' },
+    ],
+};
+
+const BUILTIN_JOURNALS = Object.entries(_BEGINNER_PHRASE_PAGES).map(([lang, phrases]) => ({
+    id:            `builtin-${lang}`,
+    title:         `Beginner Phrases - ${languageNames[lang]}`,
+    builtin:       true,
+    leftLanguage:  'en',
+    rightLanguage: lang,
+    pages: phrases.map(p => ({
+        leftText: p.left, rightText: p.right,
+        locked: true, leftLanguage: 'en', rightLanguage: lang,
+        missed: 0, correct: 0,
+    })),
+}));
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // DOM
@@ -91,7 +197,44 @@ function removeJournalFromFolder(journalId) {
 
 function render() {
     renderGrid();
+    renderBeginnerPhrases();
     renderFolders();
+}
+
+function renderBeginnerPhrases() {
+    const grid = document.getElementById('beginner-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    BUILTIN_JOURNALS.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'journal-card beginner-card';
+        const langName = languageNames[entry.rightLanguage] || entry.rightLanguage;
+        const preview  = entry.pages.map(p => p.rightText).join(' · ');
+        card.innerHTML = `
+            <div class="beginner-card-star" aria-label="Beginner phrase set">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#f59e0b" stroke="#d97706" stroke-width="1">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+            </div>
+            <div class="beginner-card-lang">${langName}</div>
+            <div class="card-body">
+                <div class="card-title">${escapeHtml(entry.title)}</div>
+                <div class="card-preview">${escapeHtml(preview)}</div>
+            </div>
+            <div class="beginner-card-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Read-only
+            </div>
+        `;
+        card.addEventListener('click', () => {
+            sessionStorage.setItem('openJournalId', entry.id);
+            window.location.href = 'journal.html';
+        });
+        grid.appendChild(card);
+    });
 }
 
 function renderGrid() {

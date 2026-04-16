@@ -109,8 +109,14 @@ K - Function Additions to Website + Live Transcription Accuracy Boosts
 	06. Romanization of languages not in latin letters
 	07. Study Mode Pronunciation Test - uses Allosaurus for audio to get raw phonetic output
 			and uses Epitran (G2p for english only) to compare expected output with real transcription
-	
 
+I - Website Additions
+	01. EXAM in study mode - allows for a randomized exam of typing and speaking
+		and does pass fail grade. Accomplishing the exam give you rankings
+		Completions 1: bronze, 2: silver, 3: gold, 4: platinum, 5: Diamond, 6: Ruby, 7: Sapphire, 10: Emerald
+	02. Beginner Phrases for each langauge are added
+		cannot be deleted or altered, completing the exams ranks up your mastery
+	
 Z - Ideas*
 	01. Make translation text and transcription text have typing animation and write out at same time
 	02. Maybe color code words that are supposed to be the same so you can learn which words are where 

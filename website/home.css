@@ -557,6 +557,107 @@ body {
     opacity: 0.4;
 }
 
+/* ── Beginner Phrases Section ── */
+#beginner-section {
+    margin-bottom: 3rem;
+}
+
+.beginner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.mastery-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;
+}
+
+.mastery-label {
+    font-size: 0.78rem;
+    color: var(--gray-text);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.mastery-bar {
+    width: 140px;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mastery-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 999px;
+    transition: width 0.5s ease;
+}
+
+.mastery-pct {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #d97706;
+    min-width: 2.5rem;
+}
+
+.beginner-card {
+    position: relative;
+    padding: 1.25rem 1.25rem 1rem;
+    border-top: 4px solid #6366f1;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.beginner-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.beginner-card-star {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.7rem;
+    line-height: 0;
+    filter: drop-shadow(0 1px 2px rgba(217, 119, 6, 0.4));
+}
+
+.beginner-card-lang {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6366f1;
+    margin-bottom: 0.5rem;
+}
+
+.beginner-card .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+.beginner-card .card-preview {
+    font-size: 0.78rem;
+    color: var(--gray-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.beginner-card-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--gray-text);
+    opacity: 0.6;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
     .main-container {

@@ -161,6 +161,7 @@
                                 <div class="study-face study-face-source" id="study-face-source">
                                     <div class="study-face-label" id="study-source-label">English</div>
                                     <div class="study-face-text" id="study-source-text"></div>
+                                    <div class="study-hint-text" id="study-hint-text"></div>
                                 </div>
                                 <div class="study-face study-face-target" id="study-face-target">
                                     <div class="study-face-label" id="study-target-label">Spanish</div>
@@ -183,6 +184,7 @@
                                     <span id="speak-btn-text">Speak</span>
                                 </button>
                                 <div class="speak-result" id="speak-result"></div>
+                                <button type="button" class="hint-toggle-btn" id="hint-toggle-btn">Hint</button>
                                 <button type="button" class="flip-page-btn" id="flip-page-btn">
                                     <span id="flip-page-btn-text">Show translation</span>
                                 </button>
@@ -196,6 +198,62 @@
                             <span class="study-page-indicator" id="study-page-indicator">Page 1 of 1</span>
                             <button type="button" class="study-page-nav-btn" id="study-next-page-btn" disabled>Next &#8594;</button>
                         </div>
+                        <button type="button" class="exam-start-btn" id="exam-start-btn">&#127891; Exam</button>
+
+                        <!-- ── Exam overlay ─────────────────────────────── -->
+                        <div class="exam-overlay" id="exam-overlay" aria-hidden="true">
+
+                            <!-- Question screen -->
+                            <div class="exam-question-screen" id="exam-question-screen">
+                                <div class="exam-top-bar">
+                                    <span class="exam-progress-text" id="exam-progress-text">Question 1 of 1</span>
+                                    <span class="exam-retry-chip" id="exam-retry-chip" hidden>2nd Chance</span>
+                                </div>
+                                <div class="exam-question-card" id="exam-question-card">
+                                    <div class="exam-qtype" id="exam-qtype"></div>
+                                    <div class="exam-prompt-text" id="exam-prompt-text"></div>
+                                </div>
+                                <div class="exam-input-area">
+                                    <!-- Speak input -->
+                                    <div class="exam-speak-wrap" id="exam-speak-wrap">
+                                        <button type="button" class="speak-btn" id="exam-mic-btn">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                                            </svg>
+                                            <span id="exam-mic-label">Speak</span>
+                                        </button>
+                                        <div class="speak-result" id="exam-speak-feedback"></div>
+                                    </div>
+                                    <!-- Type input -->
+                                    <div class="exam-type-wrap" id="exam-type-wrap">
+                                        <input type="text" class="exam-type-input" id="exam-type-input"
+                                               placeholder="Type your answer…" autocomplete="off" />
+                                    </div>
+                                </div>
+                                <div class="exam-feedback-row" id="exam-feedback-row">
+                                    <span class="exam-feedback-icon" id="exam-feedback-icon"></span>
+                                    <span class="exam-feedback-msg"  id="exam-feedback-msg"></span>
+                                    <div  class="exam-correct-ans"   id="exam-correct-ans"></div>
+                                </div>
+                                <div class="exam-btn-row">
+                                    <button type="button" class="exam-submit-btn" id="exam-submit-btn">Submit</button>
+                                    <button type="button" class="exam-next-btn"   id="exam-next-btn" hidden>Next &#8594;</button>
+                                </div>
+                            </div>
+
+                            <!-- Results screen -->
+                            <div class="exam-results-screen" id="exam-results-screen" hidden>
+                                <div class="exam-result-trophy">&#127942;</div>
+                                <div class="exam-result-score" id="exam-result-score"></div>
+                                <div class="exam-result-verdict" id="exam-result-verdict"></div>
+                                <div class="exam-result-level"   id="exam-result-level"></div>
+                                <button type="button" class="exam-exit-btn" id="exam-exit-btn">Exit Exam</button>
+                            </div>
+
+                        </div><!-- /exam-overlay -->
                     </div>
                 </div>
             </div>

@@ -576,7 +576,7 @@ def _ko_to_phones(text: str) -> list[str]:
         ipa = _JAMO_TO_IPA.get(ch)
         if ipa is not None:
             if ipa:  # empty string = silent ᄋ initial
-                phones.append(ipa)
+                phones.extend(_tokenize_ipa_string(ipa))
         # else: punctuation/space — skip
     return phones
 
@@ -718,8 +718,9 @@ def pronunciation_score(
     """
     wav_path = convert_audio(audio_path)
 
-    exp_phones = _norm_seq(text_to_phones(expected_text, lang))
-    spk_phones = _norm_seq(audio_to_phones(wav_path, lang))
+    _cjk = lang in ('zh', 'ja', 'ko')
+    exp_phones = text_to_phones(expected_text, lang) if _cjk else _norm_seq(text_to_phones(expected_text, lang))
+    spk_phones = audio_to_phones(wav_path, lang) if _cjk else _norm_seq(audio_to_phones(wav_path, lang))
 
     aligned_exp, aligned_spk = _align(exp_phones, spk_phones)
     score, aligned_exp, corrected_spk = _score_triphones(aligned_exp, aligned_spk)

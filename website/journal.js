@@ -11,6 +11,120 @@ const languageNames = {
 
 const MAX_JOURNAL_TITLE_LENGTH = 50;
 
+// ---------------------------------------------------------------------------
+// Hardcoded beginner phrase journals — always present, cannot be deleted.
+// Each page: { leftText (English), rightText (target), leftLanguage, rightLanguage }
+// ---------------------------------------------------------------------------
+const _BEGINNER_PHRASE_PAGES = {
+    es: [
+        { left: 'hello',                  right: 'hola' },
+        { left: 'goodbye',                right: 'adiós' },
+        { left: 'yes',                    right: 'sí' },
+        { left: 'no',                     right: 'no' },
+        { left: 'please',                 right: 'por favor' },
+        { left: 'thank you',              right: 'gracias' },
+        { left: 'excuse me',              right: 'con permiso' },
+        { left: 'I do not understand',    right: 'no entiendo' },
+        { left: 'do you speak english?',  right: '¿hablas inglés?' },
+        { left: 'are you okay?',          right: '¿estás bien?' },
+        { left: 'what is the price?',     right: '¿cuánto cuesta?' },
+        { left: 'where is the bathroom?', right: '¿dónde está el baño?' },
+        { left: 'that was great!',        right: '¡estuvo genial!' },
+    ],
+    fr: [
+        { left: 'hello',                  right: 'bonjour' },
+        { left: 'goodbye',                right: 'au revoir' },
+        { left: 'yes',                    right: 'oui' },
+        { left: 'no',                     right: 'non' },
+        { left: 'please',                 right: "s'il vous plaît" },
+        { left: 'thank you',              right: 'merci' },
+        { left: 'excuse me',              right: 'excusez-moi' },
+        { left: 'I do not understand',    right: 'je ne comprends pas' },
+        { left: 'do you speak english?',  right: 'parlez-vous anglais?' },
+        { left: 'are you okay?',          right: 'ça va?' },
+        { left: 'what is the price?',     right: 'quel est le prix?' },
+        { left: 'where is the bathroom?', right: 'où sont les toilettes?' },
+        { left: 'that was great!',        right: "c'était super!" },
+    ],
+    de: [
+        { left: 'hello',                  right: 'hallo' },
+        { left: 'goodbye',                right: 'auf Wiedersehen' },
+        { left: 'yes',                    right: 'ja' },
+        { left: 'no',                     right: 'nein' },
+        { left: 'please',                 right: 'bitte' },
+        { left: 'thank you',              right: 'danke' },
+        { left: 'excuse me',              right: 'entschuldigung' },
+        { left: 'I do not understand',    right: 'ich verstehe nicht' },
+        { left: 'do you speak english?',  right: 'sprechen Sie Englisch?' },
+        { left: 'are you okay?',          right: 'geht es dir gut?' },
+        { left: 'what is the price?',     right: 'was kostet das?' },
+        { left: 'where is the bathroom?', right: 'wo ist die Toilette?' },
+        { left: 'that was great!',        right: 'das war toll!' },
+    ],
+    zh: [
+        { left: 'hello',                  right: '你好' },
+        { left: 'goodbye',                right: '再见' },
+        { left: 'yes',                    right: '是' },
+        { left: 'no',                     right: '不' },
+        { left: 'please',                 right: '请' },
+        { left: 'thank you',              right: '谢谢' },
+        { left: 'excuse me',              right: '对不起' },
+        { left: 'I do not understand',    right: '我不明白' },
+        { left: 'do you speak english?',  right: '你说英语吗？' },
+        { left: 'are you okay?',          right: '你还好吗？' },
+        { left: 'what is the price?',     right: '价格是多少？' },
+        { left: 'where is the bathroom?', right: '洗手间在哪里？' },
+        { left: 'that was great!',        right: '太棒了！' },
+    ],
+    ja: [
+        { left: 'hello',                  right: 'こんにちは' },
+        { left: 'goodbye',                right: 'さようなら' },
+        { left: 'yes',                    right: 'はい' },
+        { left: 'no',                     right: 'いいえ' },
+        { left: 'please',                 right: 'おねがいします' },
+        { left: 'thank you',              right: 'ありがとう' },
+        { left: 'excuse me',              right: 'すみません' },
+        { left: 'I do not understand',    right: 'わかりません' },
+        { left: 'do you speak english?',  right: '英語を話せますか？' },
+        { left: 'are you okay?',          right: '大丈夫ですか？' },
+        { left: 'what is the price?',     right: 'いくらですか？' },
+        { left: 'where is the bathroom?', right: 'トイレはどこですか？' },
+        { left: 'that was great!',        right: '素晴らしかったです！' },
+    ],
+    ko: [
+        { left: 'hello',                  right: '안녕하세요' },
+        { left: 'goodbye',                right: '안녕히 가세요' },
+        { left: 'yes',                    right: '예' },
+        { left: 'no',                     right: '아니요' },
+        { left: 'please',                 right: '제발' },
+        { left: 'thank you',              right: '감사합니다' },
+        { left: 'excuse me',              right: '실례합니다' },
+        { left: 'I do not understand',    right: '이해하지 못합니다' },
+        { left: 'do you speak english?',  right: '영어를 할 수 있나요?' },
+        { left: 'are you okay?',          right: '괜찮으세요?' },
+        { left: 'what is the price?',     right: '가격이 얼마예요?' },
+        { left: 'where is the bathroom?', right: '화장실이 어디예요?' },
+        { left: 'that was great!',        right: '정말 좋았어요!' },
+    ],
+};
+
+const BUILTIN_JOURNALS = Object.entries(_BEGINNER_PHRASE_PAGES).map(([lang, phrases]) => ({
+    id:            `builtin-${lang}`,
+    title:         `Beginner Phrases - ${languageNames[lang]}`,
+    builtin:       true,
+    leftLanguage:  'en',
+    rightLanguage: lang,
+    pages: phrases.map(p => ({
+        leftText:      p.left,
+        rightText:     p.right,
+        locked:        true,
+        leftLanguage:  'en',
+        rightLanguage: lang,
+        missed:        0,
+        correct:       0,
+    })),
+}));
+
 // Placeholder text per language for each page side
 const placeholderSource = {
     en: 'Waiting for transcription... Type or dictate here.',
@@ -128,6 +242,8 @@ const studyTargetLabel      = document.getElementById('study-target-label');
 const studyTargetText       = document.getElementById('study-target-text');
 const flipPageBtn           = document.getElementById('flip-page-btn');
 const flipPageBtnText       = document.getElementById('flip-page-btn-text');
+const hintToggleBtn         = document.getElementById('hint-toggle-btn');
+const studyHintText         = document.getElementById('study-hint-text');
 const missedBtn             = document.getElementById('missed-btn');
 const correctBtn            = document.getElementById('correct-btn');
 const missedCountEl         = document.getElementById('missed-count');
@@ -218,6 +334,7 @@ function initializeEventListeners() {
 
     studyBtn.addEventListener('click', toggleStudyMode);
     flipPageBtn.addEventListener('click', flipStudyPage);
+    hintToggleBtn.addEventListener('click', toggleStudyHint);
     missedBtn.addEventListener('click', () => recordStudyScore('missed'));
     correctBtn.addEventListener('click', () => recordStudyScore('correct'));
     speakBtn.addEventListener('click', handleSpeakBtn);
@@ -240,6 +357,7 @@ function initializeEventListeners() {
     // Study mode page navigation
     studyPrevPageBtn.addEventListener('click', () => goToStudyPage(journalState.studyPageIndex - 1));
     studyNextPageBtn.addEventListener('click', () => goToStudyPage(journalState.studyPageIndex + 1));
+    initExamListeners();
 }
 
 // ── Page Management ───────────────────────────────────────────────────────────
@@ -268,9 +386,12 @@ function renderCurrentPage() {
     updatePlaceholders();
     englishTextEl.innerHTML = page.leftText || '';
     spanishTextEl.innerHTML = page.rightText || '';
-    // Apply locked state — locked pages are read-only on both sides
-    const isLocked = page.locked || false;
+    // Apply locked state — locked pages and builtin journals are fully read-only
+    const isBuiltin = !!(journalState.currentJournalId && journalState.currentJournalId.startsWith('builtin-'));
+    const isLocked  = isBuiltin || page.locked || false;
     englishTextEl.contentEditable = isLocked ? 'false' : 'true';
+    transcribeBtn.disabled        = isBuiltin;
+    transcribeBtn.title           = isBuiltin ? 'Read-only journal' : '';
     // Lock the source language button whenever there is content — swap still works
     languageLeftBtn.disabled = !!(englishTextEl.textContent.trim() || spanishTextEl.textContent.trim());
     // Re-apply confidence badge colors (inline style lost on innerHTML reset)
@@ -291,11 +412,12 @@ function updatePageIndicator() {
     const total      = journalState.pages.length;
     const current    = journalState.currentPageIndex + 1;
     const isLastPage = journalState.currentPageIndex === total - 1;
+    const isBuiltin  = !!(journalState.currentJournalId && journalState.currentJournalId.startsWith('builtin-'));
     bindingPageIndicator.textContent = `Page ${current} of ${total}`;
-    prevPageBtn.disabled    = journalState.currentPageIndex === 0;
-    nextPageBtn.disabled    = false;
-    nextPageBtn.innerHTML   = isLastPage ? '+ New Page' : 'Next &#8594;';
-    deletePageBtn.disabled  = false;
+    prevPageBtn.disabled   = journalState.currentPageIndex === 0;
+    nextPageBtn.disabled   = isBuiltin && isLastPage;
+    nextPageBtn.innerHTML  = (!isBuiltin && isLastPage) ? '+ New Page' : 'Next &#8594;';
+    deletePageBtn.disabled = isBuiltin;
 }
 
 function deleteCurrentPage() {
@@ -1138,6 +1260,7 @@ function showSaveFeedback() {
 
 const SIDEBAR_JOURNAL_LIMIT = 7;
 
+
 function loadJournalEntries() {
     const entries = getJournalEntries().slice(0, SIDEBAR_JOURNAL_LIMIT);
     journalList.innerHTML = '';
@@ -1184,6 +1307,7 @@ function createJournalListItem(entry) {
 }
 
 function deleteJournalEntry(id) {
+    if (id.startsWith('builtin-')) return;  // builtin journals cannot be deleted
     const entries = getJournalEntries().filter(e => e.id !== id);
     saveJournalEntries(entries);
     if (journalState.currentJournalId === id) {
@@ -1222,6 +1346,7 @@ function enterStudyMode() {
     journalState.studyShowingSource = true;
     journalState.studyPageIndex     = 0;
     studyCardInner.classList.remove('flipped');
+    resetStudyHint();
     syncStudyFaces();
     updateFlipButtonText();
 }
@@ -1236,6 +1361,10 @@ function exitStudyMode() {
     studyModeView.setAttribute('aria-hidden', 'true');
     studyBtn.textContent = 'Study';
     studyBtn.classList.remove('in-study-mode');
+    speakResult.textContent = '';
+    speakResult.className   = 'speak-result';
+    resetStudyHint();
+    if (examState.active) exitExamMode();
 }
 
 function getTextFromHTML(html) {
@@ -1266,6 +1395,41 @@ async function setStudyFaceText(el, text, lang) {
     }
 }
 
+function toggleStudyHint() {
+    journalState.studyHintVisible = !journalState.studyHintVisible;
+    studyHintText.classList.toggle('visible', journalState.studyHintVisible);
+    hintToggleBtn.classList.toggle('active', journalState.studyHintVisible);
+    hintToggleBtn.textContent = journalState.studyHintVisible ? 'Hide hint' : 'Hint';
+}
+
+function resetStudyHint() {
+    journalState.studyHintVisible = false;
+    studyHintText.classList.remove('visible');
+    hintToggleBtn.classList.remove('active');
+    hintToggleBtn.textContent = 'Hint';
+}
+
+async function setStudyHintText(text, lang) {
+    studyHintText.textContent = text;
+    if (!text || !CJK_LANGS.has(lang)) return;
+    try {
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('lang', lang);
+        const response = await fetch(`${SERVER_URL}/romanize`, { method: 'POST', body: formData });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.romanized) {
+            const sub = document.createElement('span');
+            sub.className = 'romanized';
+            sub.textContent = data.romanized;
+            studyHintText.appendChild(sub);
+        }
+    } catch (err) {
+        console.warn('Hint romanization failed:', err);
+    }
+}
+
 function syncStudyFaces() {
     const page = journalState.pages[journalState.studyPageIndex];
     const leftLang  = page.leftLanguage  || journalState.leftLanguage;
@@ -1279,6 +1443,7 @@ function syncStudyFaces() {
 
     setStudyFaceText(studySourceText, sourceText, leftLang);
     setStudyFaceText(studyTargetText, targetText, rightLang);
+    setStudyHintText(targetText, rightLang);
 
     missedCountEl.textContent  = page.missed  || 0;
     correctCountEl.textContent = page.correct || 0;
@@ -1300,6 +1465,7 @@ function goToStudyPage(index) {
     journalState.studyPageIndex     = index;
     journalState.studyShowingSource = true;
     studyCardInner.classList.remove('flipped');
+    resetStudyHint();
     syncStudyFaces();
     updateFlipButtonText();
     resetSpeakUI();
@@ -1469,6 +1635,390 @@ function updateScoreDisplay() {
     correctCountEl.textContent = 0;
 }
 
+// ── Exam Mode ─────────────────────────────────────────────────────────────────
+
+const EXAM_PASS_THRESHOLD  = 0.70;
+const EXAM_SPEAK_THRESHOLD = 0.55; // pronunciation score to count as correct
+
+// Exam DOM refs (resolved once after DOMContentLoaded)
+let examStartBtn, examOverlay, examQuestionScreen, examResultsScreen,
+    examProgressText, examRetryChip, examQtype, examPromptText,
+    examSpeakWrap, examTypeWrap, examMicBtn, examMicLabel, examSpeakFeedback,
+    examTypeInput, examFeedbackRow, examFeedbackIcon, examFeedbackMsg,
+    examCorrectAns, examSubmitBtn, examNextBtn,
+    examResultScore, examResultVerdict, examResultLevel, examExitBtn;
+
+const examState = {
+    active:               false,
+    questions:            [],   // { pageIndex, type, prompt, promptLang, expected, expectedLang, isRetry }
+    currentIndex:         0,
+    firstAttemptCorrect:  0,
+    retryQueue:           [],
+    isRetryPhase:         false,
+    retryCorrect:         0,
+    totalOriginal:        0,
+    answered:             false,
+    isRecording:          false,
+};
+
+function initExamDOMRefs() {
+    examStartBtn        = document.getElementById('exam-start-btn');
+    examOverlay         = document.getElementById('exam-overlay');
+    examQuestionScreen  = document.getElementById('exam-question-screen');
+    examResultsScreen   = document.getElementById('exam-results-screen');
+    examProgressText    = document.getElementById('exam-progress-text');
+    examRetryChip       = document.getElementById('exam-retry-chip');
+    examQtype           = document.getElementById('exam-qtype');
+    examPromptText      = document.getElementById('exam-prompt-text');
+    examSpeakWrap       = document.getElementById('exam-speak-wrap');
+    examTypeWrap        = document.getElementById('exam-type-wrap');
+    examMicBtn          = document.getElementById('exam-mic-btn');
+    examMicLabel        = document.getElementById('exam-mic-label');
+    examSpeakFeedback   = document.getElementById('exam-speak-feedback');
+    examTypeInput       = document.getElementById('exam-type-input');
+    examFeedbackRow     = document.getElementById('exam-feedback-row');
+    examFeedbackIcon    = document.getElementById('exam-feedback-icon');
+    examFeedbackMsg     = document.getElementById('exam-feedback-msg');
+    examCorrectAns      = document.getElementById('exam-correct-ans');
+    examSubmitBtn       = document.getElementById('exam-submit-btn');
+    examNextBtn         = document.getElementById('exam-next-btn');
+    examResultScore     = document.getElementById('exam-result-score');
+    examResultVerdict   = document.getElementById('exam-result-verdict');
+    examResultLevel     = document.getElementById('exam-result-level');
+    examExitBtn         = document.getElementById('exam-exit-btn');
+}
+
+// ── Level storage ─────────────────────────────────────────────────────────────
+
+function getExamLevels() {
+    try { return JSON.parse(localStorage.getItem('journalExamLevels')) || {}; }
+    catch { return {}; }
+}
+function getExamLevel(id) { return getExamLevels()[id] || 0; }
+function setExamLevel(id, level) {
+    const levels = getExamLevels();
+    levels[id] = level;
+    localStorage.setItem('journalExamLevels', JSON.stringify(levels));
+}
+
+// ── Question generation ───────────────────────────────────────────────────────
+
+const EXAM_QUESTION_TYPES = ['speak-target', 'speak-source', 'type-target', 'type-source'];
+
+function buildExamQuestions() {
+    const pages = journalState.pages;
+    // Shuffle page order
+    const indices = pages.map((_, i) => i).sort(() => Math.random() - 0.5);
+    return indices.map(i => {
+        const page    = pages[i];
+        const lLang   = page.leftLanguage  || journalState.leftLanguage;
+        const rLang   = page.rightLanguage || journalState.rightLanguage;
+        const src     = getTextFromHTML(page.leftText)  || '';
+        const tgt     = getTextFromHTML(page.rightText) || '';
+        const type    = EXAM_QUESTION_TYPES[Math.floor(Math.random() * 4)];
+        const isSpeak = type.startsWith('speak-');
+        const srcLang = type.endsWith('-target') ? lLang : rLang;
+        const expLang = type.endsWith('-target') ? rLang : lLang;
+        return {
+            pageIndex:    i,
+            type,
+            prompt:       type.endsWith('-target') ? src : tgt,
+            promptLang:   srcLang,
+            expected:     type.endsWith('-target') ? tgt : src,
+            expectedLang: expLang,
+            isRetry:      false,
+        };
+    }).filter(q => q.prompt && q.expected);
+}
+
+// ── Enter / exit ──────────────────────────────────────────────────────────────
+
+function enterExamMode() {
+    examState.questions           = buildExamQuestions();
+    examState.currentIndex        = 0;
+    examState.firstAttemptCorrect = 0;
+    examState.retryQueue          = [];
+    examState.isRetryPhase        = false;
+    examState.retryCorrect        = 0;
+    examState.totalOriginal       = examState.questions.length;
+    examState.active              = true;
+
+    examOverlay.setAttribute('aria-hidden', 'false');
+    examOverlay.classList.add('visible');
+    examResultsScreen.hidden = true;
+    examQuestionScreen.hidden = false;
+    examStartBtn.textContent = '✕ Exit Exam';
+
+    showExamQuestion();
+}
+
+function exitExamMode() {
+    examState.active = false;
+    stopExamRecording();
+    examOverlay.classList.remove('visible');
+    examOverlay.setAttribute('aria-hidden', 'true');
+    examStartBtn.textContent = '🎓 Exam';
+}
+
+function toggleExamMode() {
+    if (examState.active) { exitExamMode(); return; }
+    if (examState.questions.length === 0 && !examState.active) {
+        // start fresh
+    }
+    enterExamMode();
+}
+
+// ── Render question ───────────────────────────────────────────────────────────
+
+const EXAM_QTYPE_LABELS = {
+    'speak-target': 'Speak the translation',
+    'speak-source': 'Speak the original',
+    'type-target':  'Type the translation',
+    'type-source':  'Type the original',
+};
+
+function showExamQuestion() {
+    const q     = examState.questions[examState.currentIndex];
+    const total = examState.questions.length;
+    const num   = examState.currentIndex + 1;
+
+    examProgressText.textContent = `Question ${num} of ${total}`;
+    examRetryChip.hidden         = !q.isRetry;
+    examQtype.textContent        = EXAM_QTYPE_LABELS[q.type];
+    examPromptText.textContent   = q.prompt;
+    examState.answered           = false;
+
+    // Show correct input mode
+    const isSpeak = q.type.startsWith('speak-');
+    examSpeakWrap.hidden = !isSpeak;
+    examTypeWrap.hidden  = isSpeak;
+
+    // Reset
+    examSpeakFeedback.textContent = '';
+    examSpeakFeedback.className   = 'speak-result';
+    examTypeInput.value           = '';
+    examFeedbackRow.hidden        = true;
+    examFeedbackIcon.textContent  = '';
+    examFeedbackMsg.textContent   = '';
+    examCorrectAns.textContent    = '';
+    examSubmitBtn.hidden          = false;
+    examSubmitBtn.disabled        = false;
+    examNextBtn.hidden            = true;
+    examMicLabel.textContent      = 'Speak';
+    examMicBtn.classList.remove('recording');
+    examMicBtn.disabled           = false;
+    examState.isRecording         = false;
+
+    if (!isSpeak) examTypeInput.focus();
+}
+
+// ── Answer submission ─────────────────────────────────────────────────────────
+
+async function submitExamAnswer() {
+    if (examState.answered) return;
+    const q = examState.questions[examState.currentIndex];
+    if (q.type.startsWith('speak-')) {
+        // speak answers are submitted via the mic button flow
+        return;
+    }
+    const input = examTypeInput.value.trim();
+    if (!input) return;
+    const correct = examTypingCorrect(input, q.expected);
+    resolveExamAnswer(correct, q);
+}
+
+function examTypingCorrect(input, expected) {
+    const norm = s => s.toLowerCase().trim()
+        .replace(/[.,!?¿¡"""]/g, '').replace(/\s+/g, ' ');
+    const a = norm(input), b = norm(expected);
+    if (a === b) return true;
+    // Allow small typos: Levenshtein distance ≤ 15% of expected length
+    return levenshtein(a, b) / Math.max(b.length, 1) <= 0.15;
+}
+
+function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+}
+
+function resolveExamAnswer(correct, q) {
+    examState.answered = true;
+    if (!q.isRetry) {
+        if (correct) examState.firstAttemptCorrect++;
+        else         examState.retryQueue.push({ ...q, isRetry: true });
+    } else {
+        if (correct) examState.retryCorrect++;
+    }
+    showExamFeedback(correct, q.expected);
+}
+
+function showExamFeedback(correct, correctAnswer) {
+    examFeedbackRow.hidden       = false;
+    examFeedbackIcon.textContent = correct ? '✅' : '❌';
+    examFeedbackMsg.textContent  = correct ? 'Correct!' : 'Incorrect';
+    examCorrectAns.textContent   = correct ? '' : `Answer: ${correctAnswer}`;
+    examSubmitBtn.hidden         = true;
+    examNextBtn.hidden           = false;
+}
+
+function advanceExam() {
+    examState.currentIndex++;
+    if (examState.currentIndex < examState.questions.length) {
+        showExamQuestion();
+        return;
+    }
+    // First pass done — append retry queue if any
+    if (!examState.isRetryPhase && examState.retryQueue.length) {
+        examState.isRetryPhase = true;
+        examState.questions    = examState.retryQueue;
+        examState.currentIndex = 0;
+        showExamQuestion();
+        return;
+    }
+    showExamResults();
+}
+
+// ── Results ───────────────────────────────────────────────────────────────────
+
+function showExamResults() {
+    const total    = examState.totalOriginal;
+    const correct  = examState.firstAttemptCorrect + examState.retryCorrect;
+    const pct      = total > 0 ? correct / total : 0;
+    const passed   = pct >= EXAM_PASS_THRESHOLD;
+    const jid      = journalState.currentJournalId;
+    let   newLevel = getExamLevel(jid);
+    if (passed && jid) {
+        newLevel++;
+        setExamLevel(jid, newLevel);
+    }
+
+    examQuestionScreen.hidden = true;
+    examResultsScreen.hidden  = false;
+
+    examResultScore.textContent   = `${correct} / ${total} — ${Math.round(pct * 100)}%`;
+    examResultVerdict.textContent = passed ? '🎉 Passed!' : '😔 Not quite — keep practising!';
+    examResultVerdict.className   = `exam-result-verdict ${passed ? 'passed' : 'failed'}`;
+    examResultLevel.textContent   = jid
+        ? (passed ? `⬆ Level Up! Now Level ${newLevel}` : `Level ${newLevel}`)
+        : '';
+}
+
+// ── Exam speak recording (reuses speakState hardware) ─────────────────────────
+
+async function startExamRecording() {
+    if (speakState.isRecording) return;
+    try {
+        const stream = streamState.mediaStream
+            || await navigator.mediaDevices.getUserMedia({ audio: true });
+        const AudioCtx = window.AudioContext || /** @type {any} */ (window).webkitAudioContext;
+        speakState.audioContext    = new AudioCtx();
+        speakState.sampleRate      = speakState.audioContext.sampleRate;
+        const source               = speakState.audioContext.createMediaStreamSource(stream);
+        const processor            = speakState.audioContext.createScriptProcessor(4096, 1, 1);
+        speakState.scriptProcessor = processor;
+        speakState.sampleBuffer    = [];
+        speakState.totalSamples    = 0;
+        speakState.isRecording     = true;
+        examState.isRecording      = true;
+
+        processor.onaudioprocess = e => {
+            if (!speakState.isRecording) return;
+            const input = e.inputBuffer.getChannelData(0);
+            speakState.sampleBuffer.push(new Float32Array(input));
+            speakState.totalSamples += input.length;
+        };
+        const silentGain = speakState.audioContext.createGain();
+        silentGain.gain.value = 0;
+        source.connect(processor);
+        processor.connect(silentGain);
+        silentGain.connect(speakState.audioContext.destination);
+
+        examMicLabel.textContent = 'Stop';
+        examMicBtn.classList.add('recording');
+    } catch (err) {
+        examSpeakFeedback.textContent = 'Microphone unavailable.';
+        examSpeakFeedback.className   = 'speak-result missed';
+    }
+}
+
+function stopExamRecording() {
+    if (!speakState.isRecording) return;
+    speakState.isRecording = false;
+    examState.isRecording  = false;
+
+    const sampleRate = speakState.sampleRate || 44100;
+    if (speakState.scriptProcessor) { speakState.scriptProcessor.disconnect(); speakState.scriptProcessor = null; }
+    if (speakState.audioContext)    { speakState.audioContext.close();          speakState.audioContext    = null; }
+
+    examMicLabel.textContent = 'Checking…';
+    examMicBtn.disabled      = true;
+
+    if (!speakState.totalSamples) {
+        examMicLabel.textContent = 'Speak';
+        examMicBtn.disabled      = false;
+        return;
+    }
+    const flat = new Float32Array(speakState.totalSamples);
+    let off = 0;
+    for (const chunk of speakState.sampleBuffer) { flat.set(chunk, off); off += chunk.length; }
+    speakState.sampleBuffer = [];
+    speakState.totalSamples = 0;
+
+    onExamRecordingDone(encodeWAV(flat, sampleRate));
+}
+
+async function onExamRecordingDone(wavBlob) {
+    const q = examState.questions[examState.currentIndex];
+    try {
+        const formData = new FormData();
+        formData.append('file', wavBlob, 'speak.wav');
+        formData.append('expected_text', q.expected);
+        formData.append('lang', q.expectedLang);
+
+        const response = await fetch(`${SERVER_URL}/pronunciation`, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Server error');
+
+        const data    = await response.json();
+        const correct = data.score >= EXAM_SPEAK_THRESHOLD;
+
+        examSpeakFeedback.innerHTML =
+            `<div class="speak-score ${correct ? 'correct' : 'missed'}">${Math.round(data.score * 100)}%</div>` +
+            `<div class="speak-phonemes"><span class="ph-label">Expected:</span> <span class="ph-text">${data.expected_phonemes}</span></div>` +
+            `<div class="speak-phonemes"><span class="ph-label">Heard:</span> <span class="ph-text">${data.spoken_phonemes}</span></div>`;
+        examSpeakFeedback.className = `speak-result ${correct ? 'correct' : 'missed'}`;
+
+        resolveExamAnswer(correct, q);
+    } catch (err) {
+        examSpeakFeedback.textContent = 'Could not check. Try again.';
+        examSpeakFeedback.className   = 'speak-result missed';
+        examMicBtn.disabled = false;
+        examMicLabel.textContent = 'Speak';
+    }
+}
+
+// ── Event wiring (called from initializeEventListeners) ───────────────────────
+
+function initExamListeners() {
+    initExamDOMRefs();
+    examStartBtn.addEventListener('click', toggleExamMode);
+    examMicBtn.addEventListener('click', () => {
+        if (examState.isRecording) stopExamRecording();
+        else                       startExamRecording();
+    });
+    examTypeInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitExamAnswer();
+    });
+    examSubmitBtn.addEventListener('click', submitExamAnswer);
+    examNextBtn.addEventListener('click',   advanceExam);
+    examExitBtn.addEventListener('click',   exitExamMode);
+}
+
 // ── Journal CRUD ──────────────────────────────────────────────────────────────
 
 function startNewJournal() {
@@ -1483,8 +2033,11 @@ function startNewJournal() {
 }
 
 function openJournal(journalId) {
-    const entries = getJournalEntries();
-    const entry   = entries.find(e => e.id === journalId);
+    if (notebookEl.classList.contains('study-mode')) exitStudyMode();
+
+    const entry = journalId.startsWith('builtin-')
+        ? BUILTIN_JOURNALS.find(e => e.id === journalId)
+        : getJournalEntries().find(e => e.id === journalId);
 
     if (!entry) return;
 
