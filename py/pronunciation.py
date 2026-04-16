@@ -26,7 +26,7 @@ EPITRAN_LANG_MAP = {
 }
 
 ALLOSAURUS_LANG_MAP = {
-    'en': 'eng',
+    'en': 'ipa',  # use universal IPA mode; 'eng' filter can mis-restrict phones
     'es': 'spa',
     'fr': 'fra',
     'de': 'deu',

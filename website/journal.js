@@ -1587,7 +1587,10 @@ async function onSpeakRecordingDone(wavBlob) {
         formData.append('lang', targetLang);
 
         const response = await fetch(`${SERVER_URL}/pronunciation`, { method: 'POST', body: formData });
-        if (!response.ok) throw new Error('Server error');
+        if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(errBody.detail || `Server error ${response.status}`);
+        }
 
         const data   = await response.json();
         const passed = data.score >= PRONUNCIATION_PASS_THRESHOLD;
@@ -1601,7 +1604,7 @@ async function onSpeakRecordingDone(wavBlob) {
         recordStudyScore(passed ? 'correct' : 'missed');
     } catch (err) {
         console.warn('Pronunciation check failed:', err);
-        speakResult.textContent = 'Could not check. Try again.';
+        speakResult.textContent = `Could not check: ${err.message}`;
         speakResult.className   = 'speak-result missed';
     } finally {
         speakBtnText.textContent = 'Speak';

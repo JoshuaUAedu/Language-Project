@@ -18,3 +18,6 @@ temp.webm
 py/fleurs_temp.wav
 librispeech_temp.wav
 test_silence.wav
+temp_a2p.wav
+test_tone.wav
+test_en.wav

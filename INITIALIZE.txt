@@ -116,7 +116,9 @@ I - Website Additions
 		Completions 1: bronze, 2: silver, 3: gold, 4: platinum, 5: Diamond, 6: Ruby, 7: Sapphire, 10: Emerald
 	02. Beginner Phrases for each langauge are added
 		cannot be deleted or altered, completing the exams ranks up your mastery
-	
+	*03. NEED to adjust how grading works on typing for exam and code the rankings after with cool symbols
+	*04. ALLOW native or romanized typed text in exam
+
 Z - Ideas*
 	01. Make translation text and transcription text have typing animation and write out at same time
 	02. Maybe color code words that are supposed to be the same so you can learn which words are where 
