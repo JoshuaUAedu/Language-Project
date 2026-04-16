@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import sys
@@ -126,8 +126,12 @@ async def check_pronunciation(
     with open(temp_path, "wb") as f:
         f.write(audio_bytes)
 
-    # Score using raw audio → allosaurus IPA vs expected text → G2P/Epitran IPA
-    score, exp_phonemes, spk_phonemes = pronunciation_score(expected_text, temp_path, lang=lang)
+    try:
+        score, exp_phonemes, spk_phonemes = pronunciation_score(expected_text, temp_path, lang=lang)
+    except Exception as e:
+        import traceback, logging
+        logging.error("pronunciation_score failed: %s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
     return {"score": score, "expected_phonemes": exp_phonemes, "spoken_phonemes": spk_phonemes}
 
 @app.post("/romanize")
