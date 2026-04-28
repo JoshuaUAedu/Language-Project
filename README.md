@@ -1,4 +1,4 @@
-# LDT3 — Language Detection, Transcription & Translation
+# LDT3 — Language Detection, Transcription & Translation Tool
 
 A dynamic language learning tool that combines real-time speech transcription, neural machine translation, and an interactive journal-based study interface. Audio is processed on a GPU backend (Jetstream2) and served to a local browser frontend with no installation required on the client. Learn and rank up as you go!
 
@@ -35,7 +35,7 @@ LDT3 allows users to:
 ```
 Capstone/
 ├── env/
-│   ├── requirements.txt            # Main GPU environment dependencies
+│   ├── requirements.txt            # Main .ipynb/GPU environment dependencies
 │   ├── requirements_MoshiGPU.txt   # Alternative GPU env (Moshi experiments) -- *unused
 │   └── requirements_moshi.txt      # Local Moshi testing env -- *unused
 ├── models/
@@ -100,20 +100,6 @@ pip install -r requirements.txt
 
 > **Note:** `torch`, `torchaudio`, and `transformers` will pull in large model weights on first use. 
 
-Some packages require additional system dependencies on Linux (Jetstream2 GPU):
-
-```bash
-sudo apt update
-sudo apt install portaudio19-dev
-```
-
-After installing system deps, reactivate the environment:
-
-```bash
-deactivate
-source LNenv/bin/activate
-```
-
 ---
 
 ### Step 3 — GPU Server Environment (Jetstream2)
@@ -154,7 +140,7 @@ ds = load_dataset("google/fleurs", "en_us", split="train")
 
 ---
 
-### Section 2 — Transcription with Whisper
+### Section 2-3 — Transcription with Whisper
 
 Sets up the `openai/whisper-small` pipeline for automatic speech recognition. The pipeline transcribes `.wav` files and optionally auto-detects the spoken language.
 
@@ -169,29 +155,22 @@ A dedicated cell allows you to **record custom audio** directly from the noteboo
 
 ---
 
-### Section 3 — Language Detection
+### Section 4-5 — Language Detection
 
 Trains a **multi-class text classifier** to identify the spoken language from the transcribed text. Two approaches are explored:
 
 | Model | Input | Notes |
 |---|---|---|
 | Random Forest Classifier | Transcription text | Fast, good for longer text, very basic |
-| CNN (Keras) | Character n-grams | Better on short phrases (<4 words) |
+| CNN (Keras) | Character n-grams | Better overall |
 
 The final trained models are saved to `models/detection.pkl` and `models/cnn_detect.keras`.
-
-```python
-# Train and evaluate
-train_model(X_train, y_train)
-test_model("¿Cómo estás?")      # → Spanish
-test_model("Wie geht es dir?")  # → German
-```
 
 Language probabilities are displayed for each prediction so you can see model confidence.
 
 ---
 
-### Section 4 — Translation
+### Section 6 — Translation
 
 Loads **Meta's NLLB-200** (No Language Left Behind) model for high-quality neural translation across all supported language pairs.
 
@@ -207,17 +186,9 @@ Translation is chained directly to the transcription output — speak in one lan
 
 ---
 
-### Section 5 — Pronunciation Scoring
+### Section 10 — Pronunciation Scoring
 
 Uses **Allosaurus** (audio → IPA phonemes) and **Epitran / G2P** (text → expected IPA phonemes) with a **Needleman-Wunsch global alignment** to score how closely the spoken pronunciation matches the expected text. Supports all 7 languages including CJK scripts.
-
-```python
-from pronunciation import pronunciation_score
-score, expected, spoken = pronunciation_score("hola", "audio/recording.wav", lang="es")
-print(score)     # → 0.85
-print(expected)  # → o l a
-print(spoken)    # → o l a
-```
 
 ---
 
