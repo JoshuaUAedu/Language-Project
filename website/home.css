@@ -699,6 +699,48 @@ body {
     transform: translateY(-1px);
 }
 
+/* ── Server toggle ── */
+.server-toggle {
+    display: flex;
+    align-items: center;
+    background: var(--card-bg, #f8f8f6);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.server-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-muted, #888);
+    font-size: 0.78rem;
+    font-family: 'Merriweather', serif;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+}
+
+.server-toggle-btn:hover {
+    color: var(--text-color, #333);
+}
+
+.server-toggle-btn.active[data-mode="remote"] {
+    background: var(--accent-color, #d21f3c);
+    color: white;
+}
+
+.server-toggle-btn.active[data-mode="local"] {
+    background: #16a34a;
+    color: white;
+}
+
 /* ── Page sections ── */
 #recent-section,
 #folders-section {

@@ -1,5 +1,3 @@
-const SERVER_URL = `http://${GPU_IP}:8000`;
-
 const languageNames = {
     en: 'English', es: 'Spanish', fr: 'French', de: 'German',
     zh: 'Chinese', ja: 'Japanese', ko: 'Korean',
@@ -221,7 +219,21 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
     newFolderBtn.addEventListener('click', handleNewFolder);
     setupRecentDropZone();
+    initServerToggle();
 });
+
+function initServerToggle() {
+    const currentMode = localStorage.getItem('serverMode') || 'remote';
+    document.querySelectorAll('.server-toggle-btn').forEach(btn => {
+        if (btn.dataset.mode === currentMode) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+            const newMode = btn.dataset.mode;
+            if (newMode === (localStorage.getItem('serverMode') || 'remote')) return;
+            localStorage.setItem('serverMode', newMode);
+            location.reload();
+        });
+    });
+}
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 

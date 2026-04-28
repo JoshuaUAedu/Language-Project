@@ -266,8 +266,6 @@ const streamState = {
     _shrinkTimer: null,
 };
 
-const SERVER_URL = `http://${GPU_IP}:8000`;
-
 // Live bar chunking parameters — mirrors test_librispeech_transcript.py
 const MIN_CHUNK_SEC       = 2.0;
 const MAX_CHUNK_SEC       = 6.0;   // force-cut ceiling — prevents unbounded buffers
