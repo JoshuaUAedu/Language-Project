@@ -426,6 +426,24 @@ body {
     box-shadow: none;
 }
 
+.journal-title-wrap.beginner-theme {
+    background: #6366f1;
+    border-bottom-color: #4338ca;
+}
+.journal-title-wrap.beginner-theme .study-btn,
+.journal-title-wrap.beginner-theme .transcribe-btn {
+    color: #6366f1;
+}
+
+.journal-title-wrap.intermediate-theme {
+    background: #6b21a8;
+    border-bottom-color: #3b0764;
+}
+.journal-title-wrap.intermediate-theme .study-btn,
+.journal-title-wrap.intermediate-theme .transcribe-btn {
+    color: #6b21a8;
+}
+
 .transcribe-indicator {
     display: flex;
     align-items: center;

@@ -111,6 +111,94 @@ const BUILTIN_JOURNALS = Object.entries(_BEGINNER_PHRASE_PAGES).map(([lang, phra
     })),
 }));
 
+const _INTERMEDIATE_PHRASE_PAGES = {
+    es: [
+        { left: 'It is nice to meet you',  right: 'Es un placer conocerte' },
+        { left: 'What do you recommend?',  right: '¿Qué recomiendas?' },
+        { left: 'My name is __',           right: 'Me llamo __' },
+        { left: 'What does this mean?',    right: '¿Qué significa esto?' },
+        { left: 'How do I get to __?',     right: '¿Cómo llego a __?' },
+        { left: 'Can I see the menu?',     right: '¿Puedo ver el menú?' },
+        { left: 'I am lost',               right: 'Estoy perdido' },
+        { left: 'I like it!',              right: '¡Me gusta!' },
+        { left: 'How are you?',            right: '¿Cómo estás?' },
+        { left: 'Where are you from?',     right: '¿De dónde eres?' },
+    ],
+    fr: [
+        { left: 'It is nice to meet you',  right: 'Enchanté de vous rencontrer' },
+        { left: 'What do you recommend?',  right: 'Qu\'est-ce que vous recommandez?' },
+        { left: 'My name is __',           right: 'Je m\'appelle __' },
+        { left: 'What does this mean?',    right: 'Qu\'est-ce que cela signifie?' },
+        { left: 'How do I get to __?',     right: 'Comment aller à __?' },
+        { left: 'Can I see the menu?',     right: 'Puis-je voir le menu?' },
+        { left: 'I am lost',               right: 'Je suis perdu' },
+        { left: 'I like it!',              right: 'J\'aime ça!' },
+        { left: 'How are you?',            right: 'Comment allez-vous?' },
+        { left: 'Where are you from?',     right: 'D\'où venez-vous?' },
+    ],
+    de: [
+        { left: 'It is nice to meet you',  right: 'Schön, Sie kennenzulernen' },
+        { left: 'What do you recommend?',  right: 'Was empfehlen Sie?' },
+        { left: 'My name is __',           right: 'Ich heiße __' },
+        { left: 'What does this mean?',    right: 'Was bedeutet das?' },
+        { left: 'How do I get to __?',     right: 'Wie komme ich zu __?' },
+        { left: 'Can I see the menu?',     right: 'Kann ich die Speisekarte sehen?' },
+        { left: 'I am lost',               right: 'Ich habe mich verlaufen' },
+        { left: 'I like it!',              right: 'Es gefällt mir!' },
+        { left: 'How are you?',            right: 'Wie geht es Ihnen?' },
+        { left: 'Where are you from?',     right: 'Woher kommen Sie?' },
+    ],
+    zh: [
+        { left: 'It is nice to meet you',  right: '很高兴认识你' },
+        { left: 'What do you recommend?',  right: '你推荐什么？' },
+        { left: 'My name is __',           right: '我叫 __' },
+        { left: 'What does this mean?',    right: '这是什么意思？' },
+        { left: 'How do I get to __?',     right: '我怎么去 __？' },
+        { left: 'Can I see the menu?',     right: '我可以看菜单吗？' },
+        { left: 'I am lost',               right: '我迷路了' },
+        { left: 'I like it!',              right: '我喜欢！' },
+        { left: 'How are you?',            right: '你好吗？' },
+        { left: 'Where are you from?',     right: '你从哪里来？' },
+    ],
+    ja: [
+        { left: 'It is nice to meet you',  right: 'はじめまして' },
+        { left: 'What do you recommend?',  right: '何がおすすめですか？' },
+        { left: 'My name is __',           right: '私の名前は __' },
+        { left: 'What does this mean?',    right: 'これはどういう意味ですか？' },
+        { left: 'How do I get to __?',     right: '__ へはどうやって行きますか？' },
+        { left: 'Can I see the menu?',     right: 'メニューを見せてもらえますか？' },
+        { left: 'I am lost',               right: '道に迷いました' },
+        { left: 'I like it!',              right: '気に入りました！' },
+        { left: 'How are you?',            right: 'お元気ですか？' },
+        { left: 'Where are you from?',     right: 'どこの出身ですか？' },
+    ],
+    ko: [
+        { left: 'It is nice to meet you',  right: '만나서 반갑습니다' },
+        { left: 'What do you recommend?',  right: '무엇을 추천하시나요?' },
+        { left: 'My name is __',           right: '제 이름은 __' },
+        { left: 'What does this mean?',    right: '이게 무슨 뜻이에요?' },
+        { left: 'How do I get to __?',     right: '__ 에 어떻게 가나요?' },
+        { left: 'Can I see the menu?',     right: '메뉴를 볼 수 있을까요?' },
+        { left: 'I am lost',               right: '길을 잃었어요' },
+        { left: 'I like it!',              right: '마음에 들어요!' },
+        { left: 'How are you?',            right: '잘 지내세요?' },
+        { left: 'Where are you from?',     right: '어디서 오셨어요?' },
+    ],
+};
+
+const INTERMEDIATE_JOURNALS = Object.entries(_INTERMEDIATE_PHRASE_PAGES).map(([lang, phrases]) => ({
+    id:            `intermediate-${lang}`,
+    title:         `Intermediate Phrases - ${languageNames[lang]}`,
+    builtin:       true,
+    leftLanguage:  'en',
+    rightLanguage: lang,
+    pages: phrases.map(p => ({
+        leftText: p.left, rightText: p.right,
+        locked: true, leftLanguage: 'en', rightLanguage: lang,
+        missed: 0, correct: 0,
+    })),
+}));
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // DOM
@@ -241,6 +329,7 @@ function render() {
     renderRankings();
     renderGrid();
     renderBeginnerPhrases();
+    renderIntermediatePhrases();
     renderFolders();
 }
 
@@ -364,9 +453,10 @@ function renderBeginnerPhrases() {
     BUILTIN_JOURNALS.forEach(entry => {
         const card = document.createElement('div');
         card.className = 'journal-card beginner-card';
-        const langName = languageNames[entry.rightLanguage] || entry.rightLanguage;
-        const preview  = entry.pages.map(p => p.rightText).join(' · ');
-        const isCJK    = ['zh', 'ja', 'ko'].includes(entry.rightLanguage);
+        const langName   = languageNames[entry.rightLanguage] || entry.rightLanguage;
+        const preview    = entry.pages.map(p => p.rightText).join(' · ');
+        const isCJK      = ['zh', 'ja', 'ko'].includes(entry.rightLanguage);
+        const rankBadge  = getRankBadgeSVG(getExamLevel(entry.id), entry.id);
 
         card.innerHTML = `
             <div class="beginner-card-star" aria-label="Beginner phrase set">
@@ -387,6 +477,7 @@ function renderBeginnerPhrases() {
                 </svg>
                 Read-only
             </div>
+            ${rankBadge ? `<div class="card-rank-badge">${rankBadge}</div>` : ''}
         `;
 
         card.addEventListener('click', () => {
@@ -403,6 +494,69 @@ function renderBeginnerPhrases() {
             });
         }
     });
+    updateMasteryBar(BUILTIN_JOURNALS, 'mastery-fill', 'mastery-pct');
+}
+
+function renderIntermediatePhrases() {
+    const grid = document.getElementById('intermediate-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    INTERMEDIATE_JOURNALS.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'journal-card intermediate-card';
+        const langName  = languageNames[entry.rightLanguage] || entry.rightLanguage;
+        const preview   = entry.pages.map(p => p.rightText).join(' · ');
+        const isCJK     = ['zh', 'ja', 'ko'].includes(entry.rightLanguage);
+        const rankBadge = getRankBadgeSVG(getExamLevel(entry.id), entry.id);
+
+        card.innerHTML = `
+            <div class="intermediate-card-icon" aria-label="Intermediate phrase set">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#6b21a8" stroke="#3b0764" stroke-width="1">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="#6b21a8" stroke="#3b0764" stroke-width="1" style="margin-left:-6px;margin-top:4px;">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+            </div>
+            <div class="intermediate-card-lang">${langName}</div>
+            <div class="card-body">
+                <div class="card-title">${escapeHtml(entry.title)}</div>
+                <div class="card-preview">${escapeHtml(preview)}</div>
+                ${isCJK ? `<div class="card-preview card-romanized intermediate-romanized" data-lang="${entry.rightLanguage}"></div>` : ''}
+            </div>
+            <div class="beginner-card-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Read-only
+            </div>
+            ${rankBadge ? `<div class="card-rank-badge">${rankBadge}</div>` : ''}
+        `;
+
+        card.addEventListener('click', () => {
+            sessionStorage.setItem('openJournalId', entry.id);
+            window.location.href = 'journal.html';
+        });
+        grid.appendChild(card);
+
+        if (isCJK) {
+            const romEl = card.querySelector('.intermediate-romanized');
+            fetchBeginnerRomanized(preview, entry.rightLanguage).then(rom => {
+                if (rom && romEl) romEl.textContent = rom;
+            });
+        }
+    });
+    updateMasteryBar(INTERMEDIATE_JOURNALS, 'intermediate-mastery-fill', 'intermediate-mastery-pct');
+}
+
+function updateMasteryBar(journals, fillId, pctId) {
+    const completed = journals.filter(j => getExamLevel(j.id) >= 1).length;
+    const pct = completed === journals.length ? 100 : Math.floor((completed / journals.length) * 100);
+    const fill = document.getElementById(fillId);
+    const pctEl = document.getElementById(pctId);
+    if (fill) fill.style.width = `${pct}%`;
+    if (pctEl) pctEl.textContent = `${pct}%`;
 }
 
 async function fetchBeginnerRomanized(text, lang) {
@@ -485,11 +639,9 @@ function buildCard(entry, sourceFolderId) {
             </svg>
         </button>
         <div class="card-date-header">
-            <span class="card-day">${day}</span>
-            <div class="card-month-year">
-                <span class="card-month">${month}</span>
-                <span class="card-year">${year}</span>
-            </div>
+            <span class="card-day">${String(day).padStart(2, '0')}</span>
+            <span class="card-month">${month}</span>
+            <span class="card-year">${year}</span>
         </div>
         <div class="card-body">
             <div class="card-title">${escapeHtml(entry.title || 'Untitled Journal')}</div>

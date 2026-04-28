@@ -13,7 +13,7 @@ import config
 from datasets import load_dataset
 
 
-
+# Vibe Assisted
 # Test harness for live_transcript_typed pipeline
 # Runs pre-recorded audio files through the same chunking/transcription logic
 # and computes WER against a reference transcript.

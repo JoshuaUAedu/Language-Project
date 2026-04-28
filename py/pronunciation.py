@@ -14,6 +14,7 @@ from allosaurus.app import read_recognizer
 from pykakasi import kakasi as _Kakasi
 from pypinyin import pinyin as _pypinyin, Style as _PinyinStyle
 
+## Vibe assisted
 # ---------------------------------------------------------------------------
 # Models — loaded once
 # ---------------------------------------------------------------------------

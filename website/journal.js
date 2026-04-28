@@ -125,6 +125,98 @@ const BUILTIN_JOURNALS = Object.entries(_BEGINNER_PHRASE_PAGES).map(([lang, phra
     })),
 }));
 
+const _INTERMEDIATE_PHRASE_PAGES = {
+    es: [
+        { left: 'It is nice to meet you',  right: 'Es un placer conocerte' },
+        { left: 'What do you recommend?',  right: '¿Qué recomiendas?' },
+        { left: 'My name is __',           right: 'Me llamo __' },
+        { left: 'What does this mean?',    right: '¿Qué significa esto?' },
+        { left: 'How do I get to __?',     right: '¿Cómo llego a __?' },
+        { left: 'Can I see the menu?',     right: '¿Puedo ver el menú?' },
+        { left: 'I am lost',               right: 'Estoy perdido' },
+        { left: 'I like it!',              right: '¡Me gusta!' },
+        { left: 'How are you?',            right: '¿Cómo estás?' },
+        { left: 'Where are you from?',     right: '¿De dónde eres?' },
+    ],
+    fr: [
+        { left: 'It is nice to meet you',  right: 'Enchanté de vous rencontrer' },
+        { left: 'What do you recommend?',  right: 'Qu\'est-ce que vous recommandez?' },
+        { left: 'My name is __',           right: 'Je m\'appelle __' },
+        { left: 'What does this mean?',    right: 'Qu\'est-ce que cela signifie?' },
+        { left: 'How do I get to __?',     right: 'Comment aller à __?' },
+        { left: 'Can I see the menu?',     right: 'Puis-je voir le menu?' },
+        { left: 'I am lost',               right: 'Je suis perdu' },
+        { left: 'I like it!',              right: 'J\'aime ça!' },
+        { left: 'How are you?',            right: 'Comment allez-vous?' },
+        { left: 'Where are you from?',     right: 'D\'où venez-vous?' },
+    ],
+    de: [
+        { left: 'It is nice to meet you',  right: 'Schön, Sie kennenzulernen' },
+        { left: 'What do you recommend?',  right: 'Was empfehlen Sie?' },
+        { left: 'My name is __',           right: 'Ich heiße __' },
+        { left: 'What does this mean?',    right: 'Was bedeutet das?' },
+        { left: 'How do I get to __?',     right: 'Wie komme ich zu __?' },
+        { left: 'Can I see the menu?',     right: 'Kann ich die Speisekarte sehen?' },
+        { left: 'I am lost',               right: 'Ich habe mich verlaufen' },
+        { left: 'I like it!',              right: 'Es gefällt mir!' },
+        { left: 'How are you?',            right: 'Wie geht es Ihnen?' },
+        { left: 'Where are you from?',     right: 'Woher kommen Sie?' },
+    ],
+    zh: [
+        { left: 'It is nice to meet you',  right: '很高兴认识你' },
+        { left: 'What do you recommend?',  right: '你推荐什么？' },
+        { left: 'My name is __',           right: '我叫 __' },
+        { left: 'What does this mean?',    right: '这是什么意思？' },
+        { left: 'How do I get to __?',     right: '我怎么去 __？' },
+        { left: 'Can I see the menu?',     right: '我可以看菜单吗？' },
+        { left: 'I am lost',               right: '我迷路了' },
+        { left: 'I like it!',              right: '我喜欢！' },
+        { left: 'How are you?',            right: '你好吗？' },
+        { left: 'Where are you from?',     right: '你从哪里来？' },
+    ],
+    ja: [
+        { left: 'It is nice to meet you',  right: 'はじめまして' },
+        { left: 'What do you recommend?',  right: '何がおすすめですか？' },
+        { left: 'My name is __',           right: '私の名前は __' },
+        { left: 'What does this mean?',    right: 'これはどういう意味ですか？' },
+        { left: 'How do I get to __?',     right: '__ へはどうやって行きますか？' },
+        { left: 'Can I see the menu?',     right: 'メニューを見せてもらえますか？' },
+        { left: 'I am lost',               right: '道に迷いました' },
+        { left: 'I like it!',              right: '気に入りました！' },
+        { left: 'How are you?',            right: 'お元気ですか？' },
+        { left: 'Where are you from?',     right: 'どこの出身ですか？' },
+    ],
+    ko: [
+        { left: 'It is nice to meet you',  right: '만나서 반갑습니다' },
+        { left: 'What do you recommend?',  right: '무엇을 추천하시나요?' },
+        { left: 'My name is __',           right: '제 이름은 __' },
+        { left: 'What does this mean?',    right: '이게 무슨 뜻이에요?' },
+        { left: 'How do I get to __?',     right: '__ 에 어떻게 가나요?' },
+        { left: 'Can I see the menu?',     right: '메뉴를 볼 수 있을까요?' },
+        { left: 'I am lost',               right: '길을 잃었어요' },
+        { left: 'I like it!',              right: '마음에 들어요!' },
+        { left: 'How are you?',            right: '잘 지내세요?' },
+        { left: 'Where are you from?',     right: '어디서 오셨어요?' },
+    ],
+};
+
+const INTERMEDIATE_JOURNALS = Object.entries(_INTERMEDIATE_PHRASE_PAGES).map(([lang, phrases]) => ({
+    id:            `intermediate-${lang}`,
+    title:         `Intermediate Phrases - ${languageNames[lang]}`,
+    builtin:       true,
+    leftLanguage:  'en',
+    rightLanguage: lang,
+    pages: phrases.map(p => ({
+        leftText:      p.left,
+        rightText:     p.right,
+        locked:        true,
+        leftLanguage:  'en',
+        rightLanguage: lang,
+        missed:        0,
+        correct:       0,
+    })),
+}));
+
 // Placeholder text per language for each page side
 const placeholderSource = {
     en: 'Waiting for transcription... Type or dictate here.',
@@ -251,6 +343,7 @@ const correctCountEl        = document.getElementById('correct-count');
 const prevPageBtn           = document.getElementById('prev-page-btn');
 const nextPageBtn           = document.getElementById('next-page-btn');
 const deletePageBtn         = document.getElementById('delete-page-btn');
+const journalTitleWrap      = document.querySelector('.journal-title-wrap');
 const confidenceToggleBtn   = document.getElementById('confidence-toggle-btn');
 const bindingPageIndicator  = document.getElementById('binding-page-indicator');
 const studyPrevPageBtn      = document.getElementById('study-prev-page-btn');
@@ -376,6 +469,11 @@ function saveCurrentPageToState() {
     page.rightLanguage = journalState.rightLanguage;
 }
 
+function applyJournalTheme(journalId) {
+    journalTitleWrap.classList.toggle('beginner-theme',     !!(journalId && journalId.startsWith('builtin-')));
+    journalTitleWrap.classList.toggle('intermediate-theme', !!(journalId && journalId.startsWith('intermediate-')));
+}
+
 function renderCurrentPage() {
     const page = journalState.pages[journalState.currentPageIndex];
     // Restore per-page language pair before rendering
@@ -386,8 +484,8 @@ function renderCurrentPage() {
     updatePlaceholders();
     englishTextEl.innerHTML = page.leftText || '';
     spanishTextEl.innerHTML = page.rightText || '';
-    // Apply locked state — locked pages and builtin journals are fully read-only
-    const isBuiltin = !!(journalState.currentJournalId && journalState.currentJournalId.startsWith('builtin-'));
+    // Apply locked state — locked pages and builtin/intermediate journals are fully read-only
+    const isBuiltin = !!(journalState.currentJournalId && (journalState.currentJournalId.startsWith('builtin-') || journalState.currentJournalId.startsWith('intermediate-')));
     const isLocked  = isBuiltin || page.locked || false;
     englishTextEl.contentEditable = isLocked ? 'false' : 'true';
     transcribeBtn.disabled        = isBuiltin;
@@ -412,7 +510,7 @@ function updatePageIndicator() {
     const total      = journalState.pages.length;
     const current    = journalState.currentPageIndex + 1;
     const isLastPage = journalState.currentPageIndex === total - 1;
-    const isBuiltin  = !!(journalState.currentJournalId && journalState.currentJournalId.startsWith('builtin-'));
+    const isBuiltin  = !!(journalState.currentJournalId && (journalState.currentJournalId.startsWith('builtin-') || journalState.currentJournalId.startsWith('intermediate-')));
     bindingPageIndicator.textContent = `Page ${current} of ${total}`;
     prevPageBtn.disabled   = journalState.currentPageIndex === 0;
     nextPageBtn.disabled   = isBuiltin && isLastPage;
@@ -1320,7 +1418,7 @@ function createJournalListItem(entry) {
 }
 
 function deleteJournalEntry(id) {
-    if (id.startsWith('builtin-')) return;  // builtin journals cannot be deleted
+    if (id.startsWith('builtin-') || id.startsWith('intermediate-')) return;
     const entries = getJournalEntries().filter(e => e.id !== id);
     saveJournalEntries(entries);
     if (journalState.currentJournalId === id) {
@@ -1847,7 +1945,7 @@ function exitExamMode() {
     stopExamRecording();
     examOverlay.classList.remove('visible');
     examOverlay.setAttribute('aria-hidden', 'true');
-    examStartBtn.textContent = '🎓 Exam';
+    examStartBtn.textContent = 'EXAM';
 }
 
 function toggleExamMode() {
@@ -2162,6 +2260,7 @@ function initExamListeners() {
 
 function startNewJournal() {
     journalState.currentJournalId  = null;
+    applyJournalTheme(null);
     journalTitleEl.textContent      = 'Journal';
     journalState.pages              = [{ leftText: '', rightText: '', locked: false, leftLanguage: journalState.leftLanguage, rightLanguage: journalState.rightLanguage, missed: 0, correct: 0 }];
     journalState.currentPageIndex   = 0;
@@ -2176,7 +2275,9 @@ function openJournal(journalId) {
 
     const entry = journalId.startsWith('builtin-')
         ? BUILTIN_JOURNALS.find(e => e.id === journalId)
-        : getJournalEntries().find(e => e.id === journalId);
+        : journalId.startsWith('intermediate-')
+            ? INTERMEDIATE_JOURNALS.find(e => e.id === journalId)
+            : getJournalEntries().find(e => e.id === journalId);
 
     if (!entry) return;
 
@@ -2202,6 +2303,7 @@ function openJournal(journalId) {
     }
     journalState.currentPageIndex  = 0;
     journalState.currentJournalId  = entry.id;
+    applyJournalTheme(entry.id);
     renderCurrentPage(); // restores per-page languages and updates UI
 
     updateScoreDisplay();

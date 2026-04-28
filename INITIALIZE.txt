@@ -116,26 +116,6 @@ I - Website Additions
 		Completions 1: bronze, 2: silver, 3: gold, 4: platinum, 5: Diamond, 6: Ruby, 7: Sapphire, 10: Emerald
 	02. Beginner Phrases for each langauge are added
 		cannot be deleted or altered, completing the exams ranks up your mastery
-	03. NEED to adjust how grading works on typing for exam and code the rankings after with cool symbols
+	03. Grading logic
 	04. ALLOW native or romanized typed text in exam
 	*05. MAKE A toggle so when I lose access to GPU I can have a typing only version with CPU
-Z - Ideas*
-	01. Make translation text and transcription text have typing animation and write out at same time
-	02. Maybe color code words that are supposed to be the same so you can learn which words are where 
-	03. The Journal idea for learning, left page is source language, right page is target translation so you can read what you typed and store phrases you want to learn and categorize yourself!
-	04. ^ to go with that, add popular phrases everyone should know as default suggestions
-	05. A streaming audio section, and if using Journal in english have a bar that streams audio as you speak 
-	06. Maybe add the video caption feature for uploading a video and recieving an .mp4 back with captions 
-	07. Maybe load datasets with each 2000 examples only
-	08. above journal - streaming audio realtime transcription and translation with smaller model - variable voice detected pauses/batches for inference and transcribing while below full transriptions occur
-
-
-
-IDEAS - 
-on the top right of the journal an obvious button with the language the page is set to so you can switch source and target languages there
-adding romanization of languages that do not use our alphabet
-maybe add a linear example area for people to learn (such as preset journals for like I am going to the beach, you are going to the beach, we are going to the beach... my name is, your name is... )
-once a journal is saved allow for the journal to become one sided so you can study and flip it over to see if you were right.  --- study mode
-
-
-

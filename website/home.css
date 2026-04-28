@@ -496,40 +496,28 @@ body {
 /* Card date header — accent colored like the journal title bar */
 .card-date-header {
     background: var(--accent-color);
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1.25rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    justify-content: center;
+    gap: 0.6rem;
     flex-shrink: 0;
 }
 
-.card-day {
-    font-size: 2.4rem;
+.card-day,
+.card-month,
+.card-year {
+    font-size: 1rem;
     font-weight: 700;
     color: white;
     line-height: 1;
+    letter-spacing: 0.03em;
 }
 
-.card-month-year {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.1rem;
-}
-
-.card-month {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
 
 .card-year {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.65);
     font-weight: 400;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 /* Card body */
@@ -1000,6 +988,81 @@ body {
     opacity: 0.6;
 }
 
+/* ── Intermediate Phrases Section ── */
+#intermediate-section {
+    margin-bottom: 3rem;
+}
+
+.intermediate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.intermediate-mastery-fill {
+    background: linear-gradient(90deg, #6b21a8, #9333ea);
+}
+
+#intermediate-mastery-pct {
+    color: #6b21a8;
+}
+
+.intermediate-card {
+    position: relative;
+    padding: 1.25rem 1.25rem 1rem;
+    border-top: 4px solid #6b21a8;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.intermediate-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.intermediate-card-icon {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.7rem;
+    line-height: 0;
+    display: flex;
+    align-items: flex-start;
+    filter: drop-shadow(0 1px 2px rgba(147, 51, 234, 0.4));
+}
+
+.intermediate-card-lang {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b21a8;
+    margin-bottom: 0.5rem;
+}
+
+.intermediate-card .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+.intermediate-card .card-preview {
+    font-size: 0.78rem;
+    color: var(--gray-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.intermediate-card .card-romanized {
+    font-size: 0.72rem;
+    color: #6b21a8;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: -0.2rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
     .main-container {
@@ -1030,9 +1093,6 @@ body {
         gap: 0.85rem;
     }
 
-    .card-day {
-        font-size: 2rem;
-    }
 }
 
 @media (max-width: 420px) {

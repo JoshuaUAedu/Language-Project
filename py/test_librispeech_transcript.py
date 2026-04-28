@@ -13,7 +13,7 @@ import config
 from datasets import load_dataset
 
 
-
+#Vibe Assisted
 # Test harness for live_transcript_typed pipeline using LibriSpeech (openslr/librispeech_asr)
 # Runs pre-recorded audio samples through the same chunking/transcription logic
 # and computes WER against reference transcripts.
