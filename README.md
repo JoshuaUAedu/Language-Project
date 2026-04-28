@@ -241,9 +241,13 @@ Edit `website/config.js` and set `GPU_IP` to match your running server:
 const GPU_IP = '100.xxx.xxx.xxx';
 ```
 
-### Step 2 — Open the App
+### Step 2 — Run server.py on GPU Server Backend
 
-Open `website/index.html` 
+Run `py/server.py` on your GPU Server Backend Python window, once loaded move onto next step
+
+### Step 3 — Open the App
+
+Open `website/index.html` Live Source
 
 ```
 website/index.html   ← Home page
@@ -252,7 +256,7 @@ website/journal.html ← Journal editor (opens automatically when you create/ope
 
 > **Microphone permissions:** The browser will prompt for microphone access on first use. This is required for live transcription and pronunciation scoring.
 
-### Step 3 — Create a Journal
+### Step 4 — Create a Journal
 
 1. Click **New Journal** to open a blank two-page spread.
 2. Click **Transcribe** and speak — your words appear on the left page, and the translation appears on the right.
@@ -260,7 +264,7 @@ website/journal.html ← Journal editor (opens automatically when you create/ope
 4. Use the language droppers to choose any source/target language pair.
 5. Click **Save Journal** to store the journal in the browser's local storage.
 
-### Step 4 — Study & Exam Mode
+### Step 5 — Study & Exam Mode
 
 - Click **Study** to enter flashcard mode — flip cards to reveal translations.
 - Use the **Speak** button to practice pronunciation; a score is returned by the server.
@@ -297,7 +301,7 @@ These cannot be edited or deleted. Complete their exams to track mastery and ear
 |---|---|---|
 | `openai/whisper-small` | Hugging Face | Speech-to-text transcription & language detection |
 | `facebook/nllb-200-distilled-600M` | Hugging Face | Neural machine translation |
-| CNN / SVM classifier | Trained locally | Short-text language detection |
+| CNN / RF classifier | Trained locally | Custom language detection models |
 | Allosaurus | PyPI | Audio → IPA phoneme recognition |
 | Epitran | PyPI | Text → IPA (Spanish, French, German) |
 | G2P-en | PyPI | Text → ARPAbet → IPA (English) |
