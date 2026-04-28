@@ -2130,7 +2130,7 @@ function showExamResults() {
     examResultsScreen.hidden  = false;
 
     examResultScore.textContent   = `${correct} / ${total} — ${Math.round(pct * 100)}%`;
-    examResultVerdict.textContent = passed ? '🎉 Passed!' : '😔 Not quite — keep practising!';
+    examResultVerdict.textContent = passed ? '🎉 Passed!' : '😔 Not quite — keep practicing!';
     examResultVerdict.className   = `exam-result-verdict ${passed ? 'passed' : 'failed'}`;
     if (jid) {
         const rank    = getRank(newLevel);
